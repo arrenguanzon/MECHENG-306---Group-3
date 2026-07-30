@@ -1,6 +1,4 @@
-#include <iostream>
 #include <Arduino.h>
-#include <cmath.h>
 
 
 #define motor1_pin 4
@@ -24,15 +22,43 @@ volatile States state = IDLE;
 volatile SwitchState last_pressed = START;
 
 
+void TopISR(){
+
+
+}
+
+
+void BottomISR(){
+    if(state == HOMING && last_pressed == START){
+        // move towards left
+    } 
+    // else if (state == HOMING & ) {
+    //     // 
+    // }
+}
+
+
+void LeftISR(){
+    if(state == HOMING && last_pressed == START){
+        // move towards bottom
+    }
+}
+
+
+void RightISR(){
+
+}
+
+
 void setup(){
-    pinmode(motor1_pin, OUTPUT);
-    pinmode(motor2_pin, OUTPUT);
+    pinMode(motor1_pin, OUTPUT);
+    pinMode(motor2_pin, OUTPUT);
 
 
-    pinmode(switch_top, INPUT_PULLUP);
-    pinmode(switch_bottom, INPUT_PULLUP);
-    pinmode(switch_left, INPUT_PULLUP);
-    pinmode(switch_right, INPUT_PULLUP);
+    pinMode(switch_top, INPUT_PULLUP);
+    pinMode(switch_bottom, INPUT_PULLUP);
+    pinMode(switch_left, INPUT_PULLUP);
+    pinMode(switch_right, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(switch_top), TopISR, LOW);
     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, LOW);
     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, LOW);
@@ -47,32 +73,6 @@ void loop(){
 }
 
 
-void TopISR(){
-
-
-}
-
-
-void BottomISR(){
-    if(state == HOMING & last_pressed == START){
-        //move towards left
-    } else if (state == HOMING & )
-}
-
-
-void LeftISR(){
-    if(state == HOMING & last_pressed = START){
-        //move towards bottom
-    }
-}
-
-
-void RightISR(){
-
-
-}
-
-
 void Homing(){ // bummer do it again
     digitalWrite(motor1_pin, 0);
     digitalWrite(motor2_pin, LOW);
@@ -83,7 +83,7 @@ void Homing(){ // bummer do it again
 }
 
 
-void IDLE(){
+void IdleState(){
     digitalWrite(motor1_pin, 0);
     digitalWrite(motor2_pin, 0);
     analogWrite(enable1_pin, 0);
