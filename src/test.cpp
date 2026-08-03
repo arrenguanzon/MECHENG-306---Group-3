@@ -64,23 +64,22 @@ void setup(){
     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, LOW);
     attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, LOW);
 }
-
-
-void loop(){
-    switch (state == HOMING) {
-       
-    }
-}
-
-
 void Homing(){ // bummer do it again
-    digitalWrite(motor1_pin, 0);
+    
+    digitalWrite(motor1_pin, HIGH);
     digitalWrite(motor2_pin, LOW);
     analogWrite(enable1_pin, home_speed);
     analogWrite(enable2_pin, home_speed);
 
 
 }
+
+void loop(){
+   Homing();
+}
+
+
+
 
 
 void IdleState(){
