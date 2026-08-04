@@ -39,12 +39,38 @@
 //     attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, LOW);
 // }
 // void Homing(){ // bummer do it again
-    
-//     digitalWrite(motor1_pin, HIGH);
-//     digitalWrite(motor2_pin, LOW);
-//     analogWrite(enable1_pin, home_speed);
-//     analogWrite(enable2_pin, home_speed);
 
+/*
+void Homing(){
+    while(last_pressed == START){
+        digitalWrite(motor1_pin, LOW);
+        digitalWrite(motor2_pin, LOW);
+        analogWrite(enable1_pin, home_speed);
+        analogWrite(enable2_pin, home_speed);
+    }
+    digitalWrite(motor1_pin, 0);
+    digitalWrite(motor2_pin, 0);
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+    _delay_ms(500);
+    while(last_pressed == sL){
+        digitalWrite(motor1_pin, HIGH);
+        digitalWrite(motor2_pin, LOW);
+        analogWrite(enable1_pin, home_speed);
+        analogWrite(enable2_pin, home_speed);
+    }
+    digitalWrite(motor1_pin, 0);
+    digitalWrite(motor2_pin, 0);
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+}
+
+void loop(){
+   Homing();
+   while(1);
+}
+
+*/
 
 // }
 
