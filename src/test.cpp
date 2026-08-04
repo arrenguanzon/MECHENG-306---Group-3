@@ -15,44 +15,70 @@
 
 #define home_speed 100
 
-void setup(){
-    pinMode(motor1_pin, OUTPUT);
-    pinMode(motor2_pin, OUTPUT);
-}
 
-void loop(){
-    digitalWrite(motor1_pin, HIGH);
-    analogWrite(enable1_pin, 100);
-}
+// typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
+// typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
+// volatile States state = IDLE;
+// volatile SwitchState last_pressed = START;
 
-/*
-void Homing(){
-    while(last_pressed == START){
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, home_speed);
-        analogWrite(enable2_pin, home_speed);
-    }
-    digitalWrite(motor1_pin, 0);
-    digitalWrite(motor2_pin, 0);
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    _delay_ms(500);
-    while(last_pressed == sL){
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, home_speed);
-        analogWrite(enable2_pin, home_speed);
-    }
-    digitalWrite(motor1_pin, 0);
-    digitalWrite(motor2_pin, 0);
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-}
 
-void loop(){
-   Homing();
-   while(1);
-}
+// void setup(){
+//     pinMode(motor1_pin, OUTPUT);
+//     pinMode(motor2_pin, OUTPUT);
 
-*/
+
+//     pinMode(switch_top, INPUT_PULLUP);
+//     pinMode(switch_bottom, INPUT_PULLUP);
+//     pinMode(switch_left, INPUT_PULLUP);
+//     pinMode(switch_right, INPUT_PULLUP);
+//     attachInterrupt(digitalPinToInterrupt(switch_top), TopISR, LOW);
+//     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, LOW);
+//     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, LOW);
+//     attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, LOW);
+// }
+// void Homing(){ // bummer do it again
+    
+//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, LOW);
+//     analogWrite(enable1_pin, home_speed);
+//     analogWrite(enable2_pin, home_speed);
+
+
+// }
+
+// void loop(){
+//    Homing();
+// }
+
+// void TopISR(){
+//     last_pressed = sT;
+//     state = IDLE;
+//     IdleState();
+//     cout<<"Top switch pressed"<<endl;
+// }
+// void BottomISR(){
+//     last_pressed = sB;
+//     state = IDLE;
+//     IdleState();
+//     cout<<"Bottom switch pressed"<<endl;
+// }
+// void LeftISR(){
+//     last_pressed = sL;
+//     state = IDLE;
+//     IdleState();
+//     cout<<"Left switch pressed"<<endl;
+// }
+// void RightISR(){
+//     last_pressed = sR;
+//     state = IDLE;
+//     IdleState();
+//     cout<<"Right switch pressed"<<endl;
+// }
+
+
+// void IdleState(){
+//     digitalWrite(motor1_pin, 0);
+//     digitalWrite(motor2_pin, 0);
+//     analogWrite(enable1_pin, 0);
+//     analogWrite(enable2_pin, 0);
+// }
