@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <encoder.h>
+#include <motion.h>
 
 
 #define motor1_pin 4

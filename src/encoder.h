@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <motion.h>
 
 // 1 count = 9.513mm
 

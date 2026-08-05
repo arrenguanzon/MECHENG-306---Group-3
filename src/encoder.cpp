@@ -1,5 +1,6 @@
 #include "encoder.h"
 #include <Arduino.h> 
+#include <motion.h>
 
 // Set up encoder pins
 #define ENCODER1_A 18
@@ -38,18 +39,12 @@ int encoder::moveTo(int x, int y)
     if (currentCountA < xCounts)
     {
         // move motors forward
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, 100);
-        analogWrite(enable2_pin, 100);
+        motion::verticalUp(100);
     }
     else if (currentCountA > xCounts)
     {
         // move motors backward
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, HIGH);
-        analogWrite(enable1_pin, 100);
-        analogWrite(enable2_pin, 100);
+        motion::verticalDown(100);
     }
     else
     {
@@ -61,18 +56,12 @@ int encoder::moveTo(int x, int y)
     if (currentCountB < yCounts)
     {
         // move motors forward
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, 100);
-        analogWrite(enable2_pin, 100);
+       motion::horizontalRight(100);
     }
     else if (currentCountB > yCounts)
     {
         // move motors backward
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, HIGH);
-        analogWrite(enable1_pin, 100);
-        analogWrite(enable2_pin, 100);
+       motion::horizontalLeft(100);
     }
     else
     {
