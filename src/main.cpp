@@ -1,105 +1,77 @@
-// #include <Arduino.h>
-// #include <encoder.h>
+#include <Arduino.h>
 
+#include "config.h"
+#include "gcodeParser.h"
 
-// #define motor1_pin 4
-// #define enable1_pin 5
-// #define enable2_pin 6
-// #define motor2_pin 7
+volatile States state = IDLE; // IDLE is the default state
 
+// Current and new positions of the system
+float currentXPosition = 0;
+float currentYPosition = 0;
+float newXPosition = 0;
+float newYPosition = 0;
 
-// #define switch_top 16
-// #define switch_bottom 17
-// #define switch_left 18
-// #define switch_right 19
+// G-code command input variables
+MovementType movementType;
+float xOffset = 0;
+float yOffset = 0;
+float motionSpeed = 0; // Motion speed is inherited (if a command does not specify a speed, the previous speed is used)
 
+// G-code parsing variables
+String tokens[4];
+bool isValidMove = false;
 
-// #define home_speed 100
+void setup()
+{
+   
+}
 
+void loop()
+{
+    switch (state) {
+    case IDLE:
+        // Read user input and change to the appropriate state (HOMING, MOVING)
+        // Double check that Serial.available does what I want !!
+        if (Serial.available() > 0) { // Check if data is available to read
+            // Read the input string until semicolon character
+            String gcode_string = Serial.readStringUntil(';');  // Double check that this function does what I want !!
 
-// typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
-// typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
-// volatile States state = IDLE;
-// volatile SwitchState last_pressed = START;
+            // Turn the input string into meaningful tokens
+            tokeniseInput(gcode_string, tokens); // (arrays are automatically passed by reference)
+            // Extract parameters from the tokens
+            extractParameters(tokens, movementType, xOffset, yOffset, motionSpeed);
+            
+            // Determine where the movement command will take the system
+            trackPosition(currentXPosition, currentYPosition, xOffset, yOffset, newXPosition, newYPosition);
+            // Determine if the move is valid
+            isValidMove = validateMove(movementType, motionSpeed, xOffset, yOffset, newXPosition, newYPosition);
 
+            // If the movement is valid, execute each movement command in the G-code string
+            if (isValidMove) {
+                if (movementType == G01) {
+                    // Draw line
+                } else if (movementType == G28) {
+                    // Homing command
+                } else if (movementType == M999) {
+                    // Reset
+                }
+            }
+        }
+        
+        // Interpret errors and change to FAULT state
+        break;
+    case HOMING:
+        // Move to home position
 
-// //our other .h files will too
+        // Change to IDLE state
+        break;  
+    case MOVING:
+        // Move to target position
 
-// //global consts and vars
-// bool atHome = 0;
-
-// //function prototypes
-
-// void moveTo(int x, int y);
-// void TopISR();
-// void BottomISR();
-// void LeftISR();
-// void RightISR();
-
-
-// void setup()
-// {
-//     // Set up motor pins
-//     pinMode(motor1_pin, OUTPUT);
-//     pinMode(motor2_pin, OUTPUT);
-
-//     Serial.begin(9600);
-//     // Set up limit switch pins
-//     pinMode(switch_top, INPUT_PULLUP);
-//     pinMode(switch_bottom, INPUT_PULLUP);
-//     pinMode(switch_left, INPUT_PULLUP);
-//     pinMode(switch_right, INPUT_PULLUP);
-//     attachInterrupt(digitalPinToInterrupt(switch_top), TopISR, FALLING);
-//     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
-//     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, FALLING);
-//     attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, FALLING);
-// }
-
-
-// void TopISR(){
-//     last_pressed = sT;
-//     state = IDLE;
-//     Serial.print("last_pressed: ");
-//     Serial.println(last_pressed);
-//     Serial.println("Top switch pressed");
-
-// }
-// void BottomISR(){
-//     last_pressed = sB;
-//     state = IDLE;
-//     Serial.print("last_pressed: ");
-//     Serial.println(last_pressed);
-//     Serial.println("Bottom switch pressed");
-// }
-// void LeftISR(){
-//     last_pressed = sL;
-//     state = IDLE;
-//     Serial.print("last_pressed: ");
-//     Serial.println("Left switch pressed");
-// }
-// void RightISR(){
-//     last_pressed = sR;
-//     state = IDLE;
-//     Serial.print("last_pressed: ");
-//     Serial.println(last_pressed);
-//     Serial.println("Right switch pressed");
-// }
-
-// void loop()
-// {
-//     digitalWrite(motor1_pin, LOW);
-//     digitalWrite(motor2_pin, LOW);
-//     analogWrite(enable1_pin, 100);
-//     analogWrite(enable2_pin, 100);
-// }
-
-
-
-// // interrupts
-
-// //function implementations if we have any in the main
-
-// void moveTo(int x, int y)
-// {
-
-// }
+        // Change to IDLE state
+        break;
+    case FAULT:
+        // Parse G-code input and move to IDLE state when M999 is received
+        break;
+    }
+}
