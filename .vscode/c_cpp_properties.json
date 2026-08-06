@@ -8,7 +8,7 @@
         {
             "name": "PlatformIO",
             "includePath": [
-                "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG_306/MECHENG-306---Group-3/src",
+                "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/src",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/variants/mega",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
@@ -21,7 +21,7 @@
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
-                    "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG_306/MECHENG-306---Group-3/src",
+                    "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/src",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/variants/mega",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
