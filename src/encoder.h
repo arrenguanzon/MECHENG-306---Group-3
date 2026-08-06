@@ -1,24 +1,29 @@
-// #ifndef ENCODER_H
-// #define ENCODER_H
+#ifndef ENCODER_H
+#define ENCODER_H
 
-// #include <Arduino.h>
-// #include <string.h>
+#include <Arduino.h>
+#include <string.h>
+#include <motion.h>
 
-// // 1 count = 9.513mm
+// 1 count = 9.513mm
 
-// class encoder {
+class encoder {
 
-//     public:
-//     encoder();
+    public:
+    encoder();
+    int convertToCounts(int mm);
+    int moveTo(int x, int y);
+    volatile int currentCountA = 0;
+    volatile int currentCountB = 0;
+   
+   
+
+    private:
+    int currentPos;
+    int destinationPos;
+   
 
 
-//     private:
-//     int currentPos;
-//     int destinationPos;
-//     int currentCount = 0;
-//     int convertToCounts(int mm);
-//     int counterUp(int currentCount);
+};
 
-// };
-
-// #endif
+#endif

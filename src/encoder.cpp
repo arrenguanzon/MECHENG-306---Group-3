@@ -1,69 +1,79 @@
-// #include "encoder.h"
-// #include <Arduino.h> // not too sure if we need it
+#include "encoder.h"
+#include <Arduino.h> 
+#include <motion.h>
 
-// volatile int currentCount = 0;
+// Set up encoder pins
+#define ENCODER1_A 18
+#define ENCODER1_B 19
+#define ENCODER2_A 20
+#define ENCODER2_B 21
 
-// encoder::encoder()
-// {
-//     currentPos = 0;
-//     destinationPos = 0;
-//     currentCount = 0;
-// }
+#define motor1_pin 4
+#define enable1_pin 5
+#define enable2_pin 6
+#define motor2_pin 7
 
-// int encoder::convertToCounts(int mm)
-// {
-//     return mm * 9.513;
-// }
+encoder::encoder()
+{
+    currentPos = 0;
+    destinationPos = 0;
+    currentCountA = 0;
+    currentCountB = 0;
+}
 
-// int encoder::counterUp(int currentCount)
-// {
-//     currentCount++;
-//     return currentCount;
-// }
-
-// //ARDUNIO CODE
-
-// encoder encoderObject;
-
-// void encoder1A();
-
-// // Set up encoder pins
-// #define ENCODER1_A 18
-// #define ENCODER1_B 19
-// #define ENCODER2_A 20
-// #define ENCODER2_B 21
-
-// void setup()
-// {
-//   pinMode(ENCODER1_A, INPUT_PULLUP);
-//   pinMode(ENCODER1_B, INPUT_PULLUP);
-//   pinMode(ENCODER2_A, INPUT_PULLUP);
-//   pinMode(ENCODER2_B, INPUT_PULLUP);
-// }
-// // instants of objects ( do we need them or can we just do static functions??)
+int encoder::convertToCounts(int mm)
+{
+    return mm * 9.513;
+}
 
 
-// void loop()
-// {
 
-//     //every time quadrator encoder is triggered ISR will be called and currentCount will be incremented
-//     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), encoder1A, CHANGE);
+int encoder::moveTo(int x, int y)
+{
+    int xCounts = 0;
+    xCounts = convertToCounts(x);
+    int yCounts = 0;
+    yCounts = convertToCounts(y);
 
-// }
 
-// void encoder1A()
-// {
-//     // check direction of encoder
-//     if (digitalRead(ENCODER1_A) == digitalRead(ENCODER1_B))
-//     {
-//         // moving forward
-//         currentCount++;
-//     }
-//     else
-//     {
-//         // moving backward
-//         currentCount--;
-//     }
-// }
+    if (currentCountA < xCounts)
+    {
+        // move motors forward
+        motion::verticalUp(100);
+    }
+    else if (currentCountA > xCounts)
+    {
+        // move motors backward
+        motion::verticalDown(100);
+    }
+    else
+    {
+        // stop motors
+        digitalWrite(motor1_pin, LOW);
+        digitalWrite(motor2_pin, LOW);
+    }
 
-// // interrupts
+    if (currentCountB < yCounts)
+    {
+        // move motors forward
+       motion::horizontalRight(100);
+    }
+    else if (currentCountB > yCounts)
+    {
+        // move motors backward
+       motion::horizontalLeft(100);
+    }
+    else
+    {
+        // stop motors
+        digitalWrite(motor1_pin, LOW);
+        digitalWrite(motor2_pin, LOW);
+    }
+
+
+    return 0;
+}
+
+//need to double check direction I've got no idea whether this logc will work
+
+
