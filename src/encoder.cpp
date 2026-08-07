@@ -3,8 +3,10 @@
 #include <motion.h>
 
 // Set up encoder pins
+//motor 1 purple wires
 #define ENCODER1_A 18
 #define ENCODER1_B 19
+//motor 2 green wires
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
