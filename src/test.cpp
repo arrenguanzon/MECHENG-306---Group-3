@@ -20,8 +20,8 @@
 #define ENCODER2_B 21
 
 
-int M2_speed = 75;
-int M1_speed = M2_speed * 1.3;
+// int M2_speed = 75;
+// int M1_speed = M2_speed * 1.3;
 
 
 typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
@@ -36,6 +36,8 @@ void BottomISR();
 void LeftISR();
 void RightISR();
 void Homing();
+
+encoder encoderObject;
 
 
 void setup()
@@ -91,56 +93,60 @@ void LeftISR(){
 
 
 
-// void loop(){
+void loop(){
+    // last_pressed = START;
+    // Homing();
+    // Serial.println("Homing Complete");
+    // while(1);
 
-//     Homing();
-//     Serial.println("Homing Complete");
-//     while(1);
+    encoderObject.moveTo(10,10);
+}
+
+
+// void loop()
+// {
+//     digitalWrite(motor1_pin, LOW);
+//     digitalWrite(motor2_pin, LOW);
+//     analogWrite(enable1_pin, 100);
+//     analogWrite(enable2_pin, 100);
 // }
 
 
-void loop()
-{
-    digitalWrite(motor1_pin, LOW);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-}
+// void Homing(){
+//     while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sB) | (last_pressed == sR)){
+//         Serial.println(last_pressed);
+//         if(last_pressed == sB){
+//             digitalWrite(motor1_pin, LOW);
+//             digitalWrite(motor2_pin, HIGH);
+//             analogWrite(enable1_pin, M1_speed);
+//             analogWrite(enable2_pin, M2_speed); 
+//             delay(1000);
+//         }
+//         digitalWrite(motor1_pin, LOW);
+//         digitalWrite(motor2_pin, LOW);
+//         analogWrite(enable1_pin, M1_speed);
+//         analogWrite(enable2_pin, M2_speed);
 
-
-void Homing(){
-    while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sB) | (last_pressed == sR)){
-        if(last_pressed == sB){
-           digitalWrite(motor1_pin, LOW);
-            digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, M1_speed);
-            analogWrite(enable2_pin, M2_speed); 
-            delay(1000);
-        }
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-
-    }
+//     }
     
-    Idle();
-    // implement logic to move to the right
-    digitalWrite(motor1_pin, HIGH);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    Idle();
+//     Idle();
+//     // implement logic to move to the right
+//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, HIGH);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+//     delay(500);
+//     Idle();
 
-    while(last_pressed == sL){
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-    }
-    Idle();
-}
+//     while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sL) | (last_pressed == sR)){
+//         Serial.println(last_pressed);
+//         digitalWrite(motor1_pin, HIGH);
+//         digitalWrite(motor2_pin, LOW);
+//         analogWrite(enable1_pin, M1_speed);
+//         analogWrite(enable2_pin, M2_speed);
+//     }
+//     Idle();
+// }
 
 
 

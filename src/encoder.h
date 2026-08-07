@@ -15,6 +15,7 @@ class encoder {
     int moveTo(int x, int y);
     volatile int currentCountA = 0;
     volatile int currentCountB = 0;
+
    
    
 

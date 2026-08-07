@@ -13,6 +13,12 @@
 #define enable2_pin 6
 #define motor2_pin 7
 
+int M2_speed = 75;
+int M1_speed = M2_speed * 1.3;
+
+int xCounts = 0;
+int yCounts = 0;
+
 encoder::encoder()
 {
     currentPos = 0;
@@ -30,21 +36,34 @@ int encoder::convertToCounts(int mm)
 
 int encoder::moveTo(int x, int y)
 {
-    int xCounts = 0;
+    xCounts = 0;
     xCounts = convertToCounts(x);
-    int yCounts = 0;
+    yCounts = 0;
     yCounts = convertToCounts(y);
+   
 
 
     if (currentCountA < xCounts)
     {
         // move motors forward
-        motion::verticalUp(100);
+    digitalWrite(motor1_pin, HIGH);
+    digitalWrite(motor2_pin, LOW);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    xCounts++;
+    Serial.print("xCounts: ");
+    Serial.println(xCounts);
     }
     else if (currentCountA > xCounts)
     {
         // move motors backward
-        motion::verticalDown(100);
+        digitalWrite(motor1_pin, LOW);
+    digitalWrite(motor2_pin, HIGH);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    xCounts--;
+    Serial.print("xCounts: ");
+    Serial.println(xCounts);
     }
     else
     {
@@ -56,12 +75,25 @@ int encoder::moveTo(int x, int y)
     if (currentCountB < yCounts)
     {
         // move motors forward
-       motion::horizontalRight(100);
+      digitalWrite(motor1_pin, HIGH);
+    digitalWrite(motor2_pin, HIGH);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    yCounts++;
+     Serial.print("yCounts: ");
+    Serial.println(yCounts);
+    
     }
     else if (currentCountB > yCounts)
     {
         // move motors backward
-       motion::horizontalLeft(100);
+    digitalWrite(motor1_pin, LOW);
+    digitalWrite(motor2_pin, LOW);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    yCounts--;
+     Serial.print("yCounts: ");
+    Serial.println(yCounts);
     }
     else
     {
