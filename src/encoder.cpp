@@ -13,12 +13,17 @@
 #define enable2_pin 6
 #define motor2_pin 7
 
+#define gantry_width 100
+#define gantry_length 100
+
 encoder::encoder()
 {
     currentPos = 0;
     destinationPos = 0;
     currentCountA = 0;
     currentCountB = 0;
+    distanceFromOriginx = 0; //don't know if this will work should probably do something in homing for this
+    distanceFromOriginy = 0; //don't know if this will work
 }
 
 int encoder::convertToCounts(int mm)
@@ -35,37 +40,29 @@ int encoder::moveTo(int x, int y)
     int yCounts = 0;
     yCounts = convertToCounts(y);
 
+    if ((distanceFromOriginx + xCounts) > gantry_length || (distanceFromOriginy + yCounts) > gantry_width) {
+        Serial.println("Error: Destination exceeds gantry limits.");
+        return -1;
+    }
 
-    if (currentCountA < xCounts)
-    {
-        // move motors forward
+    if (currentCountA < xCounts) {
         motion::verticalUp(100);
-    }
-    else if (currentCountA > xCounts)
-    {
-        // move motors backward
+    } 
+    else if (currentCountA > xCounts) {
         motion::verticalDown(100);
-    }
-    else
-    {
-        // stop motors
+    } 
+    else{
         digitalWrite(motor1_pin, LOW);
         digitalWrite(motor2_pin, LOW);
     }
 
-    if (currentCountB < yCounts)
-    {
-        // move motors forward
+    if (currentCountB < yCounts) {
        motion::horizontalRight(100);
-    }
-    else if (currentCountB > yCounts)
-    {
-        // move motors backward
+    } 
+    else if (currentCountB > yCounts) { 
        motion::horizontalLeft(100);
-    }
-    else
-    {
-        // stop motors
+    } 
+    else {
         digitalWrite(motor1_pin, LOW);
         digitalWrite(motor2_pin, LOW);
     }
