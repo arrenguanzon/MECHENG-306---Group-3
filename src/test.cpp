@@ -99,7 +99,7 @@ void loop(){
     // Serial.println("Homing Complete");
     // while(1);
 
-    encoderObject.moveTo(10,10);
+    encoderObject.move(10,10);
 }
 
 

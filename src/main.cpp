@@ -85,7 +85,7 @@ void loop()
     // analogWrite(enable1_pin, 100);
     // analogWrite(enable2_pin, 100);
 
-    encoderObject.moveTo(100, 100);
+    encoderObject.move(10, 10);
     delay(1000); //for testing purposes, to see if the motors move to the desired position
 }
 
