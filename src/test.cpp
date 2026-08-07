@@ -9,10 +9,10 @@
 #define motor2_pin 4
 
 
-#define switch_top 16
+#define switch_top 10
 #define switch_bottom 3
 #define switch_left 2
-#define switch_right 17
+#define switch_right A8
 
 #define ENCODER1_A 18
 #define ENCODER1_B 19
@@ -20,7 +20,7 @@
 #define ENCODER2_B 21
 
 
-int M2_speed = 100;
+int M2_speed = 75;
 int M1_speed = M2_speed * 1.3;
 
 
@@ -50,10 +50,15 @@ void setup()
     pinMode(switch_bottom, INPUT_PULLUP);
     pinMode(switch_left, INPUT_PULLUP);
     pinMode(switch_right, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(switch_top), TopISR, FALLING);
+
     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
+    //Top switch
+    PCICR |= (1 << PCIE0); 
+    PCMSK0 |= (1 << PCINT4);
+    //Right switch
+    PCICR |= (1 << PCIE2);      
+    PCMSK2 |= (1 << PCINT16);
     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, FALLING);
-    attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, FALLING);
 
 }
 
@@ -65,71 +70,74 @@ void Idle(){
     delay(1000);
 }
 
-void TopISR(){
-    last_pressed = sT;
-    Serial.print("last_pressed: ");
-    Serial.println(last_pressed);
-    Serial.println("Top switch pressed");
-
-}
 void BottomISR(){
     last_pressed = sB;
-    Serial.print("last_pressed: ");
-    Serial.println(last_pressed);
-    Serial.println("Bottom switch pressed");
-}
-void LeftISR(){
-    last_pressed = sL;
-    Serial.print("last_pressed: ");
-    Serial.println("Left switch pressed");
-}
-void RightISR(){
-    last_pressed = sR;
-    Serial.print("last_pressed: ");
-    Serial.println(last_pressed);
-    Serial.println("Right switch pressed");
 }
 
-/*
-void loop(){
-    Homing();
-   Serial.println("Homing complete");
-   while(1);
+ISR(PCINT0_vect) {
+   last_pressed = sT;
 }
-*/
+
+ISR(PCINT2_vect) {
+    last_pressed = sR;
+}
+
+void LeftISR(){
+    last_pressed = sL;
+    // Serial.print("last_pressed: ");
+    // Serial.println("Left switch pressed");
+    // Idle();
+}
+
+
+
+// void loop(){
+
+//     Homing();
+//     Serial.println("Homing Complete");
+//     while(1);
+// }
+
+
 void loop()
 {
-    digitalWrite(motor1_pin, HIGH);
-    digitalWrite(motor2_pin, LOW);
-    analogWrite(enable1_pin, 130);
-    analogWrite(enable2_pin, 100);
+    digitalWrite(motor1_pin, LOW);
+    digitalWrite(motor2_pin, HIGH);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
 }
 
 
 void Homing(){
-    while(last_pressed == START | last_pressed == sT | last_pressed == sB | last_pressed == sR){
+    while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sB) | (last_pressed == sR)){
         if(last_pressed == sB){
            digitalWrite(motor1_pin, LOW);
             digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, home_speed);
-            analogWrite(enable2_pin, home_speed); 
+            analogWrite(enable1_pin, M1_speed);
+            analogWrite(enable2_pin, M2_speed); 
             delay(1000);
         }
         digitalWrite(motor1_pin, LOW);
         digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, home_speed);
-        analogWrite(enable2_pin, home_speed);
+        analogWrite(enable1_pin, M1_speed);
+        analogWrite(enable2_pin, M2_speed);
+
     }
     
     Idle();
     // implement logic to move to the right
-
+    digitalWrite(motor1_pin, HIGH);
+    digitalWrite(motor2_pin, HIGH);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    delay(500);
+    Idle();
 
     while(last_pressed == sL){
         digitalWrite(motor1_pin, HIGH);
         digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, home_speed);
-        analogWrite(enable2_pin, home_speed);
+        analogWrite(enable1_pin, M1_speed);
+        analogWrite(enable2_pin, M2_speed);
     }
     Idle();
 }
