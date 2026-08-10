@@ -26,10 +26,11 @@ class GCode {
         bool parseValue(const String &token); // Function also checks if input is valid, returns true if valid, false if not
         void printErrorCommand() const; // Reports to user if command is valid or not
         // Getters
-        Command getCommand();
+        Command getCommand() const;
         float getXTarget() const;
         float getYTarget() const;
         float getSpeedTarget() const;
+        bool isValid() const;
 
 
 };

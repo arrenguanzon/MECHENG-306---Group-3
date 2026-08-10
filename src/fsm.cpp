@@ -1,51 +1,63 @@
-#include "FSM.h"
+#include "fsm.h"
 
 FSM::FSM()
 {
     state = IDLE;
 }
 
-void FSM::update()
+void FSM::update(const GCode& gcode)
 {
+    if (!gcode.isValid()) {
+        return;
+    }
     switch (state)
     {
         case IDLE:
-            updateIdle();
+            if(gcode.getCommand() == GCode::G28) {
+                setState(HOMING);
+            } else if (gcode.getCommand() == GCode::G1) {
+                setState(MOVING);
+            }
             break;
 
         case HOMING:
-            updateHoming();
+
             break;
 
         case MOVING:
-            updateMoving();
+
             break;
 
         case FAULT:
-            updateFault();
+            if (gcode.getCommand() == GCode::M999) {
+                setState(IDLE);
+            }
             break;
     }
 }
 
-void FSM::updateIdle()
-{
-    // Implement the logic for the IDLE state
+
+FSM::State FSM::getState() const{
+    return state;
 }
 
-void FSM::updateHoming()
-{
-    
+void FSM::setState(State newState) {
+    state = newState;
 }
 
-void FSM::updateMoving()
-{
-    // Implement the logic for the MOVING state
+const char* FSM::getStateName() const {
+    switch (state) {
+        case IDLE:
+            return "IDLE";
+        case HOMING:
+            return "HOMING";
+        case MOVING:
+            return "MOVING";
+        case FAULT:
+            return "FAULT";
+        default:
+            return "UNKNOWN";
+    }
 }
-
-void FSM::updateFault()
-{
-    // Implement the logic for the FAULT state
-}
-
 
 

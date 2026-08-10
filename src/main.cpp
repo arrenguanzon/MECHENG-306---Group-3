@@ -1,7 +1,7 @@
 #include <Arduino.h>
-#include <encoder.h>
-#include <gcode.h>
-
+#include "encoder.h"
+#include "gcode.h"
+#include "fsm.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -20,6 +20,7 @@
 #define ENCODER2_B 21
 
 String user_input = "";
+FSM fsm;
 
 // Homing base speeds
 int M2_speed = 100;
@@ -27,8 +28,7 @@ int M1_speed = M2_speed * 1.3;
 
 
 typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
-typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
-volatile States state = IDLE;
+volatile FSM::State state = FSM::IDLE;
 volatile SwitchState last_pressed = START;
 
 
@@ -83,23 +83,44 @@ void setup()
 
 }
 
-void Idle(){
-    digitalWrite(motor1_pin, 0);
-    digitalWrite(motor2_pin, 0);
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(1000);
+void loop(){
+    // Input reading
+    while (Serial.available() > 0)
+    {
+        char c = Serial.read();
+
+        if (c == '\n' || c == '\r')
+        {
+            if (user_input.length() > 0)
+            {
+                Serial.println();
+                GCode gcode(user_input);
+
+                fsm.update(gcode);
+
+                Serial.print("State: ");
+                Serial.println(fsm.getStateName());
+
+                user_input = "";
+            }
+        }
+        else
+        {
+            Serial.print(c);   // Echo character immediately
+            user_input += c;
+        }
+    }
 }
 
 void BottomISR(){
     last_pressed = sB;
 }
 
-ISR(PCINT0_vect) {
+ISR(PCINT0_vect) { // Top Limit Switch
    last_pressed = sT;
 }
 
-ISR(PCINT2_vect) {
+ISR(PCINT2_vect) { // Right Limit Switch
     last_pressed = sR;
 }
 
@@ -126,28 +147,4 @@ void ENCODER2BISR() {
     
 }
 
-void loop(){
 
-    // Input reading
-    while (Serial.available() > 0)
-    {
-        char c = Serial.read();
-
-        if (c == '\n' || c == '\r')
-        {
-            if (user_input.length() > 0)
-            {
-                Serial.println();
-
-                GCode gcode(user_input );
-
-                user_input = "";
-            }
-        }
-        else
-        {
-            Serial.print(c);   // Echo character immediately
-            user_input += c;
-        }
-    }
-}

@@ -172,7 +172,7 @@ void GCode::printErrorCommand() const {
 }
 
 
-GCode::Command GCode::getCommand() {
+GCode::Command GCode::getCommand() const {
     return command;
 }
 float GCode::getXTarget() const {
@@ -185,4 +185,7 @@ float GCode::getSpeedTarget() const {
     return speed_target;
 }
 
+bool GCode::isValid() const {
+    return valid_command;
+}
 

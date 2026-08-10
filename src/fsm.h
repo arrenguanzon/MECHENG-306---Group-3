@@ -3,30 +3,25 @@
 
 #include "gcode.h"
 
-class FSM
-{
-public:
+class FSM {
+    public:
+        enum State
+        {
+            IDLE,
+            HOMING,
+            MOVING,
+            FAULT
+        };
 
-    enum State
-    {
-        IDLE,
-        HOMING,
-        MOVING,
-        FAULT
-    };
+    private:
+        State state;
 
-    FSM();
-
-    void update();
-
-private:
-
-    State state;
-
-    void updateIdle();
-    void updateHoming();
-    void updateMoving();
-    void updateFault();
+    public:
+        FSM();
+        State getState() const;
+        void update(const GCode& gcode);
+        void setState(State newState);
+        const char* getStateName() const;
 };
 
 #endif
