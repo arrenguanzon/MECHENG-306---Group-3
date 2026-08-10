@@ -24,11 +24,11 @@
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
 
-// Absolution position tracker and Initialising Motion Controller
+// Absolution position tracker and initialising Motion Controller
 float absoluteX = 0.0f;
 float absoluteY = 0.0f;
 
-Encoder encoder;
+//Encoder encoder;
 MotionController motionController(encoder, absoluteX, absoluteY);
 
 String user_input = "";
@@ -45,9 +45,9 @@ void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
 
-// encoder encoderObject;
+encoder encoderObject;
 
-
+//Setup
 void setup()
 {
     // Set up motor pins
@@ -85,6 +85,7 @@ void setup()
 
 }
 
+//loop
 void loop(){
     // Input reading
     while (Serial.available() > 0)
@@ -112,6 +113,10 @@ void loop(){
     }
     fsm.update();
 }
+
+//----------------------------------------------------------------------------------------------------------------------------------//
+
+//ISR's
 
 void BottomISR(){
     last_pressed = MotionController::sB;

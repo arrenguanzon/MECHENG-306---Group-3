@@ -62,6 +62,7 @@ void FSM::update()
 
         case MOVING:
             motionController.update();
+            Serial.print("Current Position: entered update");
             if (motionController.isCompleted()){
                 setState(IDLE);
             }
