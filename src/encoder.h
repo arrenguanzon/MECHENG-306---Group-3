@@ -9,15 +9,15 @@
 // class encoder {
 
 //     public:
-//     encoder();
-
+//         encoder();
+//         int convertToCounts(int mm);
+//         int moveTo(int x, int y);
+//         volatile int currentCountA = 0;
+//         volatile int currentCountB = 0;
 
 //     private:
-//     int currentPos;
-//     int destinationPos;
-//     int currentCount = 0;
-//     int convertToCounts(int mm);
-//     int counterUp(int currentCount);
+//         int currentPos;
+//         int destinationPos;
 
 // };
 

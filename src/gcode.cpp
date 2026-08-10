@@ -4,21 +4,16 @@
 GCode::GCode(String &rc){
     raw_command = rc;
 
-
     command = UNDEFINED;
 
-
     valid_command = false;
-
 
     has_x = false;
     has_y = false;
     has_speed = false;
 
-
     x_target = 0.0f;
     y_target = 0.0f;
-
 
     tokeniseInput(rc);
 }
@@ -28,12 +23,10 @@ void GCode::tokeniseInput(const String &rc) {
     int start = 0;
     bool valid = true;
     for (int i = 0; i <= rc.length(); i++) {
-
-
         if (i == rc.length() || rc.charAt(i) == ' ') {
             String token = rc.substring(start, i);
 
-
+            // Check for command tokens
             if (token == "G1" || token == "G01" || token == "g1" || token == "g01") {
                 if (command == UNDEFINED) {
                 command = G1;
@@ -76,12 +69,10 @@ void GCode::tokeniseInput(const String &rc) {
         valid_command = false;
     }
 
-
+    // If the command is invalid, print an error message
     if (!valid_command) {
         printErrorCommand();
     }
-
-
 }
 
 
@@ -102,14 +93,11 @@ bool GCode::parseValue(const String &token) {
         return false;
     }
 
-
     bool decimalFound = false;
     bool digitFound = false;
     bool negative = false;
 
-
     int start = 1;
-
 
     // Allow negative numbers
     if (token.charAt(start) == '-') {
@@ -117,20 +105,16 @@ bool GCode::parseValue(const String &token) {
         start++;
     }
 
-
     // "-" by itself is not a number
     if (start == token.length()) {
         return false;
     }
 
-
     float value = 0;
     float decimalPlace = 0.1;
 
-
     for (int i = start; i < token.length(); i++) {
         char c = token.charAt(i);
-
 
         if (c >= '0' && c <= '9') {
             digitFound = true;
@@ -152,11 +136,9 @@ bool GCode::parseValue(const String &token) {
         return false;
     }
 
-
     if (negative) {
         value = -value;
     }
-
 
     // Store the value
     if (type == 'X') {
@@ -178,10 +160,6 @@ bool GCode::parseValue(const String &token) {
         speed_target = value;
         has_speed = true;
     }
-
-
-   
-
 
     return true;
 }

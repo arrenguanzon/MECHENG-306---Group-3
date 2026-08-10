@@ -1,12 +1,32 @@
 #ifndef FSM_H
 #define FSM_H
 
-class fsm {
+#include "gcode.h"
 
-    public:
+class FSM
+{
+public:
 
+    enum State
+    {
+        IDLE,
+        HOMING,
+        MOVING,
+        FAULT
+    };
 
-    private:
+    FSM();
+
+    void update();
+
+private:
+
+    State state;
+
+    void updateIdle();
+    void updateHoming();
+    void updateMoving();
+    void updateFault();
 };
 
 #endif
