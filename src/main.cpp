@@ -2,6 +2,7 @@
 #include "encoder.h"
 #include "gcode.h"
 #include "fsm.h"
+#include "motionController.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -19,18 +20,19 @@
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
+
+volatile MotionController::SwitchState last_pressed =
+    MotionController::START;
+
+// Absolution position tracker and Initialising Motion Controller
+float absoluteX = 0.0f;
+float absoluteY = 0.0f;
+
+Encoder encoder;
+MotionController motionController(encoder, absoluteX, absoluteY);
+
 String user_input = "";
-FSM fsm;
-
-// Homing base speeds
-int M2_speed = 100;
-int M1_speed = M2_speed * 1.3;
-
-
-typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
-volatile FSM::State state = FSM::IDLE;
-volatile SwitchState last_pressed = START;
-
+FSM fsm(motionController, last_pressed);
 
 //function prototypes
 void TopISR();
@@ -89,14 +91,13 @@ void loop(){
     {
         char c = Serial.read();
 
-        if (c == '\n' || c == '\r')
-        {
+        if (c == '\n' || c == '\r') {
             if (user_input.length() > 0)
             {
                 Serial.println();
                 GCode gcode(user_input);
 
-                fsm.update(gcode);
+                fsm.processCommand(gcode);
 
                 Serial.print("State: ");
                 Serial.println(fsm.getStateName());
@@ -104,47 +105,75 @@ void loop(){
                 user_input = "";
             }
         }
-        else
-        {
+        else {
             Serial.print(c);   // Echo character immediately
             user_input += c;
         }
     }
+    fsm.update();
 }
 
 void BottomISR(){
-    last_pressed = sB;
+    last_pressed = MotionController::sB;
 }
 
 ISR(PCINT0_vect) { // Top Limit Switch
-   last_pressed = sT;
+   last_pressed = MotionController::sT;
 }
 
 ISR(PCINT2_vect) { // Right Limit Switch
-    last_pressed = sR;
+    last_pressed = MotionController::sR;
 }
 
 void LeftISR(){
-    last_pressed = sL;
+    last_pressed = MotionController::sL;
     // Serial.print("last_pressed: ");
     // Serial.println("Left switch pressed");
     // Idle();
 }
 
 void ENCODER1AISR() {
-    
+    bool A = digitalRead(ENCODER1_A);
+    bool B = digitalRead(ENCODER1_B);
+
+    if (A == B) {
+        encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
+    }
 }
 
 void ENCODER1BISR() {
-    
+    bool A = digitalRead(ENCODER1_A);
+    bool B = digitalRead(ENCODER1_B);
+
+    if (A != B) {
+        encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
+    }
 }
 
 void ENCODER2AISR() {
-    
+    bool A = digitalRead(ENCODER2_A);
+    bool B = digitalRead(ENCODER2_B);
+
+    if (A == B) {
+        encoder.incrementMotor2Count();
+    } else {
+        encoder.decrementMotor2Count();
+    }
 }
 
 void ENCODER2BISR() {
-    
+    bool A = digitalRead(ENCODER2_A);
+    bool B = digitalRead(ENCODER2_B);
+
+    if (A != B) {
+        encoder.incrementMotor2Count();
+    } else {
+        encoder.decrementMotor2Count();
+    }
 }
 
 

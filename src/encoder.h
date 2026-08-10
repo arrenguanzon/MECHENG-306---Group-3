@@ -8,8 +8,8 @@
 class Encoder {
 
     private:
-        int motor1Count;
-        int motor2Count;
+        volatile int motor1Count;
+        volatile int motor2Count;
     public:
         Encoder();
         int convertToCounts(float distanceInMM);

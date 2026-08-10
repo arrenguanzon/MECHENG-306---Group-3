@@ -2,6 +2,7 @@
 #define FSM_H
 
 #include "gcode.h"
+#include "motionController.h"
 
 class FSM {
     public:
@@ -15,12 +16,15 @@ class FSM {
 
     private:
         State state;
+        MotionController& motionController; 
+        volatile MotionController::SwitchState& switchState;
 
     public:
-        FSM();
-        State getState() const;
-        void update(const GCode& gcode);
+        FSM(MotionController& controller, volatile MotionController::SwitchState& switchState);
+        void processCommand(const GCode& gcode);
+        void update();
         void setState(State newState);
+        State getState() const;
         const char* getStateName() const;
 };
 

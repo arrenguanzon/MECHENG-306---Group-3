@@ -1,12 +1,6 @@
 #include "encoder.h"
 #include <Arduino.h> 
 
-// Set up motor pins
-#define motor1_pin 7
-#define enable1_pin 6
-#define enable2_pin 5
-#define motor2_pin 4
-
 #define gantry_width 100
 #define gantry_length 100
 
