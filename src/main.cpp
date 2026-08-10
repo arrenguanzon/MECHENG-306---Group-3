@@ -1,7 +1,8 @@
 #include <Arduino.h>
-#include <encoder.h>
-#include <motion.h>
-
+#include "encoder.h"
+#include "gcode.h"
+#include "fsm.h"
+#include "motionController.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -20,37 +21,39 @@
 #define ENCODER2_B 21
 
 
-// Homing base speeds
-int M2_speed = 100;
-int M1_speed = M2_speed * 1.3;
+volatile MotionController::SwitchState last_pressed =
+    MotionController::START;
 
+// Absolution position tracker and Initialising Motion Controller
+float absoluteX = 0.0f;
+float absoluteY = 0.0f;
 
-typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
-typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
-volatile States state = IDLE;
-volatile SwitchState last_pressed = START;
+Encoder encoder;
+MotionController motionController(encoder, absoluteX, absoluteY);
+
+String user_input = "";
+FSM fsm(motionController, last_pressed);
 
 //function prototypes
+void TopISR();
 void BottomISR();
 void LeftISR();
+void RightISR();
 void Homing();
-void Idle();
-void encoder1();
-void encoder2();
+void ENCODER1AISR();
+void ENCODER1BISR();
+void ENCODER2AISR();
+void ENCODER2BISR();
+
+// encoder encoderObject;
 
 
-//objects
-
-encoder encoderObject;
-
-//setup function
 void setup()
 {
     // Set up motor pins
     pinMode(motor1_pin, OUTPUT);
     pinMode(motor2_pin, OUTPUT);
 
-    
     Serial.begin(9600);
     // Set up limit switch pins
     pinMode(switch_top, INPUT_PULLUP);
@@ -73,122 +76,104 @@ void setup()
     PCICR |= (1 << PCIE2);      
     PCMSK2 |= (1 << PCINT16);
     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, FALLING);
-    
-    //setup for encoders
-    attachInterrupt(digitalPinToInterrupt(ENCODER1_A), encoder1, CHANGE);
-    //attachInterrupt(digitalPinToInterrupt(ENCODER1_B), encoder1, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(ENCODER2_A), encoder2, CHANGE);
-    //attachInterrupt(digitalPinToInterrupt(ENCODER2_B), encoder2, CHANGE);
+
+    // Attach interrupts for encoders
+    attachInterrupt(digitalPinToInterrupt(ENCODER1_A), ENCODER1AISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
 
 }
 
-//loop function
-void loop()
-{
-    // digitalWrite(motor1_pin, LOW);
-    // digitalWrite(motor2_pin, HIGH);
-    // analogWrite(enable1_pin, M1_speed);
-    // analogWrite(enable2_pin, M2_speed);
+void loop(){
+    // Input reading
+    while (Serial.available() > 0)
+    {
+        char c = Serial.read();
 
-    encoderObject.move(10, 10);
-    delay(1000); //for testing purposes, to see if the motors move to the desired position
+        if (c == '\n' || c == '\r') {
+            if (user_input.length() > 0)
+            {
+                Serial.println();
+                GCode gcode(user_input);
+
+                fsm.processCommand(gcode);
+
+                Serial.print("State: ");
+                Serial.println(fsm.getStateName());
+
+                user_input = "";
+            }
+        }
+        else {
+            Serial.print(c);   // Echo character immediately
+            user_input += c;
+        }
+    }
+    fsm.update();
 }
-
-//----------------------------------------------------------------------------------------------------------------------------------//
-
-//interrupt service routines for limit switches ( will need to add idle stuff at some point and switch debouncing)
 
 void BottomISR(){
-    last_pressed = sB;
+    last_pressed = MotionController::sB;
 }
+
+ISR(PCINT0_vect) { // Top Limit Switch
+   last_pressed = MotionController::sT;
+}
+
+ISR(PCINT2_vect) { // Right Limit Switch
+    last_pressed = MotionController::sR;
+}
+
 void LeftISR(){
-    last_pressed = sL;
+    last_pressed = MotionController::sL;
+    // Serial.print("last_pressed: ");
+    // Serial.println("Left switch pressed");
+    // Idle();
 }
 
-//top switch and right switch are handled by pin change interrupts
-ISR(PCINT0_vect) {
-   last_pressed = sT;
-}
+void ENCODER1AISR() {
+    bool A = digitalRead(ENCODER1_A);
+    bool B = digitalRead(ENCODER1_B);
 
-ISR(PCINT2_vect) {
-    last_pressed = sR;
-}
-
-//encoder interrupt service routines [check to make sure they correlate with correct encoders and directions]
-void encoder1()
-{
-    // check direction of encoder
-    if (digitalRead(ENCODER1_A) == digitalRead(ENCODER1_B)){
-        encoderObject.currentCountA--;
-        encoderObject.distanceFromOriginx--;
-    }
-    else {
-        encoderObject.currentCountA++;
-        encoderObject.distanceFromOriginx++;
+    if (A == B) {
+        encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 
-void encoder2()
-{
-    // check direction of encoder
-    if (digitalRead(ENCODER2_A) == digitalRead(ENCODER2_B)){
-        encoderObject.currentCountB--;
-        encoderObject.distanceFromOriginy--;
-    }
-    else{
-        encoderObject.currentCountB++;
-        encoderObject.distanceFromOriginy++;
+void ENCODER1BISR() {
+    bool A = digitalRead(ENCODER1_A);
+    bool B = digitalRead(ENCODER1_B);
+
+    if (A != B) {
+        encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 
+void ENCODER2AISR() {
+    bool A = digitalRead(ENCODER2_A);
+    bool B = digitalRead(ENCODER2_B);
 
-
-//placeholder idle
-void Idle(){
-    digitalWrite(motor1_pin, 0);
-    digitalWrite(motor2_pin, 0);
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(1000);
+    if (A == B) {
+        encoder.incrementMotor2Count();
+    } else {
+        encoder.decrementMotor2Count();
+    }
 }
 
-//placeholder place for homing function might put it somewhere related to FSM later
+void ENCODER2BISR() {
+    bool A = digitalRead(ENCODER2_A);
+    bool B = digitalRead(ENCODER2_B);
 
-void Homing(){
-    while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sB) | (last_pressed == sR)){
-        Serial.println(last_pressed);
-        if(last_pressed == sB){
-            digitalWrite(motor1_pin, LOW);
-            digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, M1_speed);
-            analogWrite(enable2_pin, M2_speed); 
-            delay(1000);
-        }
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-
+    if (A != B) {
+        encoder.incrementMotor2Count();
+    } else {
+        encoder.decrementMotor2Count();
     }
-    
-    Idle();
-    // implement logic to move to the right
-    digitalWrite(motor1_pin, HIGH);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    Idle();
-
-    while((last_pressed == START) | (last_pressed == sT) | (last_pressed == sL) | (last_pressed == sR)){
-        Serial.println(last_pressed);
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-    }
-    Idle();
 }
-
 
 
