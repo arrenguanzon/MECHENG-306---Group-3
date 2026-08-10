@@ -15,6 +15,7 @@ void FSM::processCommand(const GCode& gcode)
     switch (state) {
         case IDLE:
             if (gcode.getCommand() == GCode::G28) {
+                switchState = MotionController::START;
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
