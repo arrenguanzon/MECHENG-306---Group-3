@@ -34,6 +34,9 @@ volatile SwitchState last_pressed = START;
 void BottomISR();
 void LeftISR();
 void Homing();
+void Idle();
+void encoder1();
+void encoder2();
 
 
 //objects
@@ -73,7 +76,9 @@ void setup()
     
     //setup for encoders
     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), encoder1, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(ENCODER1_B), encoder1, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), encoder2, CHANGE);
+    //attachInterrupt(digitalPinToInterrupt(ENCODER2_B), encoder2, CHANGE);
 
 }
 
@@ -81,9 +86,9 @@ void setup()
 void loop()
 {
     // digitalWrite(motor1_pin, LOW);
-    // digitalWrite(motor2_pin, LOW);
-    // analogWrite(enable1_pin, 100);
-    // analogWrite(enable2_pin, 100);
+    // digitalWrite(motor2_pin, HIGH);
+    // analogWrite(enable1_pin, M1_speed);
+    // analogWrite(enable2_pin, M2_speed);
 
     encoderObject.move(10, 10);
     delay(1000); //for testing purposes, to see if the motors move to the desired position
@@ -114,12 +119,12 @@ void encoder1()
 {
     // check direction of encoder
     if (digitalRead(ENCODER1_A) == digitalRead(ENCODER1_B)){
-        encoderObject.currentCountA++;
-        encoderObject.distanceFromOriginx++;
-    }
-    else {
         encoderObject.currentCountA--;
         encoderObject.distanceFromOriginx--;
+    }
+    else {
+        encoderObject.currentCountA++;
+        encoderObject.distanceFromOriginx++;
     }
 }
 
@@ -127,12 +132,12 @@ void encoder2()
 {
     // check direction of encoder
     if (digitalRead(ENCODER2_A) == digitalRead(ENCODER2_B)){
-        encoderObject.currentCountB++;
-        encoderObject.distanceFromOriginy++;
-    }
-    else{
         encoderObject.currentCountB--;
         encoderObject.distanceFromOriginy--;
+    }
+    else{
+        encoderObject.currentCountB++;
+        encoderObject.distanceFromOriginy++;
     }
 }
 

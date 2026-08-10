@@ -49,18 +49,26 @@ int encoder::move(int x, int y)
     }
 
     while (currentCountA < xCounts) {
-        motion::verticalUp(100);
+        //motion::verticalUp(100);
+        Serial.print("currentCountA: ");
+        Serial.println(currentCountA);
     } 
     while(currentCountA > xCounts) {
-        motion::verticalDown(100);
+        //motion::verticalDown(100);
+        Serial.print("currentCountA: ");
+        Serial.println(currentCountA);
     } 
 
     while (currentCountB < yCounts) {
-       motion::horizontalRight(100);
+       //motion::horizontalRight(100);
+       Serial.print("currentCountB: ");
+        Serial.println(currentCountB);
     } 
 
     while(currentCountB > yCounts) { 
-       motion::horizontalLeft(100);
+       //motion::horizontalLeft(100);
+       Serial.print("currentCountB: ");
+       Serial.println(currentCountB);
     } 
 
     
