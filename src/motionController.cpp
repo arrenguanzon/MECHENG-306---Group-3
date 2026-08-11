@@ -10,6 +10,8 @@
 int M2_speed = 100;
 int M1_speed = M2_speed * 1.3;
 
+#define POSITION_TOLERANCE 10 // Tolerance in encoder counts for position control
+
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
     targetY = 0.0f;
