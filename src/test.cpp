@@ -1,19 +1,26 @@
-#include <Arduino.h>
+// #include <Arduino.h>
 
 
-#define motor1_pin 4
-#define enable1_pin 5
-#define enable2_pin 6
-#define motor2_pin 7
+
+// #define motor1_pin 7
+// #define enable1_pin 6
+// #define enable2_pin 5
+// #define motor2_pin 4
 
 
-#define switch_top 2
-#define switch_bottom 3
-#define switch_left 18
-#define switch_right 19
+// #define switch_top 10
+// #define switch_bottom 3
+// #define switch_left 2
+// #define switch_right A8
+
+// #define ENCODER1_A 18
+// #define ENCODER1_B 19
+// #define ENCODER2_A 20
+// #define ENCODER2_B 21
 
 
-#define home_speed 100
+// // int M2_speed = 75;
+// // int M1_speed = M2_speed * 1.3;
 
 
 // typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
@@ -21,64 +28,81 @@
 // volatile States state = IDLE;
 // volatile SwitchState last_pressed = START;
 
+// //function prototypes
 
-// void setup(){
+
+// void BottomISR();
+// void LeftISR();
+
+
+// void setup()
+// {
+//     // Set up motor pins
 //     pinMode(motor1_pin, OUTPUT);
 //     pinMode(motor2_pin, OUTPUT);
 
-
+//     Serial.begin(9600);
+//     // Set up limit switch pins
 //     pinMode(switch_top, INPUT_PULLUP);
 //     pinMode(switch_bottom, INPUT_PULLUP);
 //     pinMode(switch_left, INPUT_PULLUP);
 //     pinMode(switch_right, INPUT_PULLUP);
-//     attachInterrupt(digitalPinToInterrupt(switch_top), TopISR, LOW);
-//     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, LOW);
-//     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, LOW);
-//     attachInterrupt(digitalPinToInterrupt(switch_right), RightISR, LOW);
-// }
-// void Homing(){ // bummer do it again
-    
-//     digitalWrite(motor1_pin, HIGH);
-//     digitalWrite(motor2_pin, LOW);
-//     analogWrite(enable1_pin, home_speed);
-//     analogWrite(enable2_pin, home_speed);
 
+//     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
+//     //Top switch
+//     PCICR |= (1 << PCIE0); 
+//     PCMSK0 |= (1 << PCINT4);
+//     //Right switch
+//     PCICR |= (1 << PCIE2);      
+//     PCMSK2 |= (1 << PCINT16);
+//     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, FALLING);
 
 // }
 
-// void loop(){
-//    Homing();
-// }
-
-// void TopISR(){
-//     last_pressed = sT;
-//     state = IDLE;
-//     IdleState();
-//     cout<<"Top switch pressed"<<endl;
-// }
-// void BottomISR(){
-//     last_pressed = sB;
-//     state = IDLE;
-//     IdleState();
-//     cout<<"Bottom switch pressed"<<endl;
-// }
-// void LeftISR(){
-//     last_pressed = sL;
-//     state = IDLE;
-//     IdleState();
-//     cout<<"Left switch pressed"<<endl;
-// }
-// void RightISR(){
-//     last_pressed = sR;
-//     state = IDLE;
-//     IdleState();
-//     cout<<"Right switch pressed"<<endl;
-// }
-
-
-// void IdleState(){
+// void Idle(){
 //     digitalWrite(motor1_pin, 0);
 //     digitalWrite(motor2_pin, 0);
 //     analogWrite(enable1_pin, 0);
 //     analogWrite(enable2_pin, 0);
+
 // }
+
+// void BottomISR(){
+//     last_pressed = sB;
+// }
+
+// ISR(PCINT0_vect) {
+//    last_pressed = sT;
+// }
+
+// ISR(PCINT2_vect) {
+//     last_pressed = sR;
+// }
+
+// void LeftISR(){
+//     last_pressed = sL;
+//      analogWrite(enable1_pin, 0);
+//     analogWrite(enable2_pin, 0);
+
+//     Serial.print("interrupt");
+
+//     while(1);
+    
+//     // Serial.print("last_pressed: ");
+//     // Serial.println("Left switch pressed");
+//     // Idle();
+// }
+
+
+
+// void loop(){
+
+//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, HIGH);
+//     analogWrite(enable1_pin, 100);
+//     analogWrite(enable2_pin, 100);
+
+// }
+
+
+
