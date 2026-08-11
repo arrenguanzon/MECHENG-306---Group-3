@@ -12,9 +12,15 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
+<<<<<<< HEAD
             "executable": "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
             "toolchainBinDir": "C:/Users/cinye/.platformio/packages/toolchain-atmelavr/bin",
+=======
+            "executable": "C:/Users/princ/OneDrive/Desktop/UOA Part III/MECHENG 306/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
+            "projectEnvName": "megaatmega2560",
+            "toolchainBinDir": "C:/Users/princ/.platformio/packages/toolchain-atmelavr/bin",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
@@ -25,18 +31,30 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
+<<<<<<< HEAD
             "executable": "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
             "toolchainBinDir": "C:/Users/cinye/.platformio/packages/toolchain-atmelavr/bin",
+=======
+            "executable": "C:/Users/princ/OneDrive/Desktop/UOA Part III/MECHENG 306/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
+            "projectEnvName": "megaatmega2560",
+            "toolchainBinDir": "C:/Users/princ/.platformio/packages/toolchain-atmelavr/bin",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
+<<<<<<< HEAD
             "executable": "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
             "projectEnvName": "megaatmega2560",
             "toolchainBinDir": "C:/Users/cinye/.platformio/packages/toolchain-atmelavr/bin",
+=======
+            "executable": "C:/Users/princ/OneDrive/Desktop/UOA Part III/MECHENG 306/MECHENG-306---Group-3/.pio/build/megaatmega2560/firmware.elf",
+            "projectEnvName": "megaatmega2560",
+            "toolchainBinDir": "C:/Users/princ/.platformio/packages/toolchain-atmelavr/bin",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }

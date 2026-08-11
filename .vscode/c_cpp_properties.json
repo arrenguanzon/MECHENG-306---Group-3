@@ -8,6 +8,7 @@
         {
             "name": "PlatformIO",
             "includePath": [
+<<<<<<< HEAD
                 "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/src",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/cores/arduino",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/variants/mega",
@@ -16,11 +17,22 @@
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                 "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+=======
+                "C:/Users/princ/OneDrive/Desktop/UOA Part III/MECHENG 306/MECHENG-306---Group-3/src",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/variants/mega",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
                 ""
             ],
             "browse": {
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
+<<<<<<< HEAD
                     "C:/Users/cinye/OneDrive/University/3rd_Year/MECHENG-306---Group-3/src",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/cores/arduino",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/variants/mega",
@@ -29,6 +41,16 @@
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
                     "C:/Users/cinye/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+=======
+                    "C:/Users/princ/OneDrive/Desktop/UOA Part III/MECHENG 306/MECHENG-306---Group-3/src",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "C:/Users/princ/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
                     ""
                 ]
             },
@@ -43,7 +65,11 @@
             ],
             "cStandard": "gnu11",
             "cppStandard": "gnu++11",
+<<<<<<< HEAD
             "compilerPath": "C:/Users/cinye/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+=======
+            "compilerPath": "C:/Users/princ/.platformio/packages/toolchain-atmelavr/bin/avr-gcc.exe",
+>>>>>>> e19bdd0c4de54d3df0eee2ac6fd4371bac97ed9a
             "compilerArgs": [
                 "-mmcu=atmega2560",
                 ""
