@@ -19,6 +19,14 @@ void FSM::processCommand(const GCode& gcode)
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
+                Serial.print("X target: ");
+                Serial.println(gcode.getXTarget());
+
+                Serial.print("Y target: ");
+                Serial.println(gcode.getYTarget());
+
+                Serial.print("Speed target: ");
+                Serial.println(gcode.getSpeedTarget());
                 motionController.setTarget(
                     gcode.getXTarget(),
                     gcode.getYTarget(),

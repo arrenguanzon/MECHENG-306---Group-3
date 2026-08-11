@@ -4,22 +4,35 @@
 #define gantry_width 100
 #define gantry_length 100
 
-#define MM_PER_COUNT 15*PI/8256 // 1 count = 5.71 um
+#define MM_PER_COUNT (15.0f * PI / 8256.0f) // 1 count = 5.71 um
 
 Encoder::Encoder() {
     motor1Count = 0;
     motor2Count = 0;
 }
 
-int Encoder::convertToCounts(float distanceInMM) {
-    return (distanceInMM / MM_PER_COUNT);
+long Encoder::convertToCounts(float distanceInMM) {
+    // return (long)round(distanceInMM / MM_PER_COUNT);
+    float counts = distanceInMM / MM_PER_COUNT;
+
+    // Debugging Prints
+    // Serial.print("Distance: ");
+    // Serial.println(distanceInMM);
+
+    // Serial.print("MM per count: ");
+    // Serial.println(MM_PER_COUNT, 8);
+
+    // Serial.print("Calculated counts: ");
+    // Serial.println(counts);
+
+    return (int)round(counts);
 }
 
-int Encoder::getMotor1Count() {
+long Encoder::getMotor1Count() {
     return motor1Count;
 }
 
-int Encoder::getMotor2Count() {
+long Encoder::getMotor2Count() {
     return motor2Count;
 }
 

@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "encoder.h"
+#include "gcode.h"
 
 class MotionController {
     private:

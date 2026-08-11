@@ -24,28 +24,58 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetX = x;
     targetY = y;
     this->speed = speed;
+
+    Serial.println("=== setTarget() ===");
+    Serial.print("targetX: ");
+    Serial.println(targetX);
+    Serial.print("targetY: ");
+    Serial.println(targetY);
+    Serial.print("speed: ");
+    Serial.println(this->speed);
+
     calculateMotorTargets();
+
+    Serial.print("targetMotor1: ");
+    Serial.println(targetMotor1);
+    Serial.print("targetMotor2: ");
+    Serial.println(targetMotor2);
     
     completed = false;
 }
 
 void MotionController::update() {
+    Serial.println("=== update() ===");
+
     if (completed) {
+        Serial.println("Motion already completed");
         return;
     }
-    int currentMotor1 = encoder.getMotor1Count();
-    int currentMotor2 = encoder.getMotor2Count();
+    long currentMotor1 = encoder.getMotor1Count();
+    long currentMotor2 = encoder.getMotor2Count();
+
+    Serial.print("M1: ");
+    Serial.print(currentMotor1);
+    Serial.print(" / ");
+    Serial.println(targetMotor1);
+
+    Serial.print("M2: ");
+    Serial.print(currentMotor2);
+    Serial.print(" / ");
+    Serial.println(targetMotor2);
 
     // MOTOR 1 CONTROL //
     if (currentMotor1 < targetMotor1) {
+        Serial.println("M1: FORWARD");
         // Move motor 1 forward
         digitalWrite(motor1_pin, HIGH);
         analogWrite(enable1_pin, speed);
     } else if (currentMotor1 > targetMotor1) {
+        Serial.println("M1: BACKWARD");
         // Move motor 1 backward
         digitalWrite(motor1_pin, LOW);
         analogWrite(enable1_pin, speed);
     } else {
+        Serial.println("M1: STOP");
         // Stop motor 1
         analogWrite(enable1_pin, 0);
     }
@@ -66,6 +96,7 @@ void MotionController::update() {
 
     // Check if both motors have reached their targets //
     if (currentMotor1 == targetMotor1 && currentMotor2 == targetMotor2) {
+        Serial.println("=== TARGET REACHED ===");
         completed = true;
         // Stop both motors
         analogWrite(enable1_pin, 0);
@@ -79,11 +110,32 @@ bool MotionController::isCompleted() const {
 }
 
 void MotionController::calculateMotorTargets() {
-    int motor1Counts = encoder.convertToCounts(targetX - targetY);
-    int motor2Counts = encoder.convertToCounts(targetX + targetY);
+    long motor1Counts = encoder.convertToCounts(targetX - targetY);
+    long motor2Counts = encoder.convertToCounts(targetX + targetY);
+
+    Serial.println("=== calculateMotorTargets() ===");
+
+    Serial.print("motor1Counts: ");
+    Serial.println(motor1Counts);
+
+    Serial.print("motor2Counts: ");
+    Serial.println(motor2Counts);
+
+    Serial.print("Current M1: ");
+    Serial.println(encoder.getMotor1Count());
+
+    Serial.print("Current M2: ");
+    Serial.println(encoder.getMotor2Count());
+
     // Convert target positions to encoder counts
     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
+
+    Serial.print("Target M1: ");
+    Serial.println(targetMotor1);
+
+    Serial.print("Target M2: ");
+    Serial.println(targetMotor2);
 }
 
 void MotionController::Idle() {
