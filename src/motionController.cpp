@@ -221,7 +221,6 @@ void MotionController::update() {
     int currentMotor1 = encoder.getMotor1Count();
     int currentMotor2 = encoder.getMotor2Count();
 
-
     // MOTOR 1 CONTROL //
     if (currentMotor1 < targetMotor1) {
         // Move motor 1 forward
@@ -239,8 +238,6 @@ void MotionController::update() {
     // MOTOR 2 CONTROL //
     if (currentMotor2 < targetMotor2) {
         // Move motor 2 forward
-        Serial.print("Current Motor 2 Count: ");
-        Serial.println(currentMotor2);
         digitalWrite(motor2_pin, HIGH);
         analogWrite(enable2_pin, speed);
     } else if (currentMotor2 > targetMotor2) {
@@ -278,19 +275,16 @@ void MotionController::Idle() {
     // Stop both motors
     analogWrite(enable1_pin, 0);
     analogWrite(enable2_pin, 0);
-    delay(500);
 }
 
 void MotionController::Homing(const volatile SwitchState& switchState){
-    int a = 0;
-    while(switchState != MotionController::sL){
-        if(switchState == MotionController::sB && a == 0){
+    while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sB) || (switchState == MotionController::sR)){
+        if(switchState == MotionController::sB){
             digitalWrite(motor1_pin, LOW);
             digitalWrite(motor2_pin, HIGH);
             analogWrite(enable1_pin, M1_speed);
             analogWrite(enable2_pin, M2_speed); 
             delay(1000);
-            a = 1;
         }
         digitalWrite(motor1_pin, LOW);
         digitalWrite(motor2_pin, LOW);
@@ -299,45 +293,22 @@ void MotionController::Homing(const volatile SwitchState& switchState){
 
     }
     
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
+    Idle();
     // implement logic to move to the right
     digitalWrite(motor1_pin, HIGH);
     digitalWrite(motor2_pin, HIGH);
     analogWrite(enable1_pin, M1_speed);
     analogWrite(enable2_pin, M2_speed);
     delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
+    Idle();
 
-    // while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
-    while(switchState != MotionController::sB){
+    while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
         digitalWrite(motor1_pin, HIGH);
         digitalWrite(motor2_pin, LOW);
         analogWrite(enable1_pin, M1_speed);
         analogWrite(enable2_pin, M2_speed);
-
     }
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-    
-    digitalWrite(motor1_pin, LOW);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
+    Idle();
     absoluteX = 0.0f;
     absoluteY = 0.0f;
     encoder.resetCounts();
