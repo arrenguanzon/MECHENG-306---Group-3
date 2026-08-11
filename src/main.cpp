@@ -24,11 +24,12 @@
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
 
-// Absolution position tracker and initialising Motion Controller
+// Absolution position tracker and Initialising Motion Controller
 float absoluteX = 0.0f;
 float absoluteY = 0.0f;
 
-//Encoder encoder;
+Encoder encoder;
+
 MotionController motionController(encoder, absoluteX, absoluteY);
 
 String user_input = "";
@@ -45,9 +46,9 @@ void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
 
-encoder encoderObject;
+// encoder encoderObject;
 
-//Setup
+
 void setup()
 {
     // Set up motor pins
@@ -85,8 +86,8 @@ void setup()
 
 }
 
-//loop
 void loop(){
+
     // Input reading
     while (Serial.available() > 0)
     {
@@ -114,10 +115,6 @@ void loop(){
     fsm.update();
 }
 
-//----------------------------------------------------------------------------------------------------------------------------------//
-
-//ISR's
-
 void BottomISR(){
     last_pressed = MotionController::sB;
 }
@@ -142,9 +139,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -153,9 +150,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -164,9 +161,9 @@ void ENCODER2AISR() {
     bool B = digitalRead(ENCODER2_B);
 
     if (A == B) {
-        encoder.incrementMotor2Count();
-    } else {
         encoder.decrementMotor2Count();
+    } else {
+        encoder.incrementMotor2Count();
     }
 }
 
@@ -175,10 +172,8 @@ void ENCODER2BISR() {
     bool B = digitalRead(ENCODER2_B);
 
     if (A != B) {
-        encoder.incrementMotor2Count();
-    } else {
         encoder.decrementMotor2Count();
+    } else {
+        encoder.incrementMotor2Count();
     }
 }
-
-
