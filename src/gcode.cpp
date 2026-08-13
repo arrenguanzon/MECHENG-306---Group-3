@@ -18,13 +18,41 @@ GCode::GCode(String &rc){
     tokeniseInput(rc);
 }
 
-
 void GCode::tokeniseInput(const String &rc) {
     int start = 0;
     bool valid = true;
-    for (int i = 0; i <= rc.length(); i++) {
-        if (i == rc.length() || rc.charAt(i) == ' ') {
-            String token = rc.substring(start, i);
+
+    //split rc after ;
+    int end = rc.indexOf(';');
+
+    String rc_filtered;
+    if (end >= 0) {
+        rc_filtered = rc.substring(0, end);
+    } else {
+        rc_filtered = rc;
+    }
+    
+     rc_filtered.trim();
+
+    for (int i = 0; i <= rc_filtered.length(); i++) {
+
+        if (i == rc_filtered.length() ||
+            rc_filtered.charAt(i) == ' ' ||
+            rc_filtered.charAt(i) == 'X' ||
+            rc_filtered.charAt(i) == 'x' ||
+            rc_filtered.charAt(i) == 'Y' ||
+            rc_filtered.charAt(i) == 'y' ||
+            rc_filtered.charAt(i) == 'F' ||
+            rc_filtered.charAt(i) == 'f' ||
+            rc_filtered.charAt(i) == 'G' ||
+            rc_filtered.charAt(i) == 'g' ||
+            rc_filtered.charAt(i) == 'M' ||
+            rc_filtered.charAt(i) == 'm') {
+
+        // A token ends at a space, the start of another command or the end of the string
+
+        if(i>start) {
+            String token = rc_filtered.substring(start, i);
 
             // Check for command tokens
             if (token == "G1" || token == "G01" || token == "g1" || token == "g01") {
@@ -46,11 +74,29 @@ void GCode::tokeniseInput(const String &rc) {
                     valid = false;
                 }
             } else {
-                if (!parseValue(token)) {
-                    valid = false;
+
+                    if (!parseValue(token)) {
+                        valid = false;
+                    }
                 }
             }
-            start = i + 1;
+
+            // If this character is a new one, don't skip it --> it normally skips spaces this is here so it dosen't skip commands.
+            if (rc_filtered.charAt(i) == 'X' ||
+                rc_filtered.charAt(i) == 'x' ||
+                rc_filtered.charAt(i) == 'Y' ||
+                rc_filtered.charAt(i) == 'y' ||
+                rc_filtered.charAt(i) == 'F' ||
+                rc_filtered.charAt(i) == 'f' ||
+                rc_filtered.charAt(i) == 'G' ||
+                rc_filtered.charAt(i) == 'g' ||
+                rc_filtered.charAt(i) == 'M' ||
+                rc_filtered.charAt(i) == 'm') {
+
+                start = i;
+            } else {
+                start = i + 1;
+            }
         }
     }
     // Validity checks for commands
@@ -188,4 +234,3 @@ float GCode::getSpeedTarget() const {
 bool GCode::isValid() const {
     return valid_command;
 }
-
