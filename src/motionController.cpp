@@ -12,7 +12,7 @@ int M1_speed = M2_speed * 1.3;
 #define MIN_SPEED 40
 #define MAX_SPEED 100
 #define SLOW_ZONE 500
-#define POSITION_TOLERANCE 10 // Tolerance in encoder counts for position control
+#define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
@@ -54,99 +54,106 @@ void MotionController::update() { // This controls the motors
         Serial.println("Motion already completed");
         return;
     }
-    long error1 = targetMotor1 - encoder.getMotor1Count();
-    long error2 = targetMotor2 - encoder.getMotor2Count();
+
+    // Get current encoder positions
+    long current1 = encoder.getMotor1Count();
+    long current2 = encoder.getMotor2Count();
+
+    // Calculate position errors
+    long error1 = targetMotor1 - current1;
+    long error2 = targetMotor2 - current2;
 
     Serial.print("M1: ");
-    Serial.print(encoder.getMotor1Count());
+    Serial.print(current1);
     Serial.print(" / ");
-    Serial.println(targetMotor1);
+    Serial.print(targetMotor1);
 
-    Serial.print("M2: ");
-    Serial.print(encoder.getMotor2Count());
+    Serial.print("    M2: ");
+    Serial.print(current2);
     Serial.print(" / ");
     Serial.println(targetMotor2);
 
+    // MOTOR 1
     int motor1Speed;
-    int motor2Speed;
 
-    // MOTOR 1 CONTROL //
     if (abs(error1) <= POSITION_TOLERANCE) {
+        // Close enough to target
         motor1Speed = 0;
-    } else if (abs(error1) < SLOW_ZONE) {
-        motor1Speed = map(abs(error1), 0, SLOW_ZONE,
-                        MIN_SPEED, MAX_SPEED);
-    } else {
+    }
+    else if (abs(error1) < SLOW_ZONE) {
+        // Slow down as we approach target
+        motor1Speed = map(
+            abs(error1),
+            0,
+            SLOW_ZONE,
+            MIN_SPEED,
+            MAX_SPEED
+        );
+    }
+    else {
+        // Far from target
         motor1Speed = MAX_SPEED;
     }
 
+    // Motor 1 direction
+    //
+    // HIGH -> positive encoder counts
+    // LOW  -> negative encoder counts
     if (error1 > 0) {
         digitalWrite(motor1_pin, HIGH);
-    } else {
+    }
+    else if (error1 < 0) {
         digitalWrite(motor1_pin, LOW);
     }
-
     analogWrite(enable1_pin, motor1Speed);
 
-    // MOTOR 2 CONTROL //
+    // MOTOR 2
+    int motor2Speed;
+
     if (abs(error2) <= POSITION_TOLERANCE) {
+        // Close enough to target
         motor2Speed = 0;
-    } else if (abs(error2) < SLOW_ZONE) {
-        motor2Speed = map(abs(error2), 0, SLOW_ZONE,
-                        MIN_SPEED, MAX_SPEED);
-    } else {
+    }
+    else if (abs(error2) < SLOW_ZONE) {
+        // Slow down as we approach target
+        motor2Speed = map(
+            abs(error2),
+            0,
+            SLOW_ZONE,
+            MIN_SPEED,
+            MAX_SPEED
+        );
+    }
+    else {
+        // Far from target
         motor2Speed = MAX_SPEED;
     }
 
+    // Motor 2 direction
+    //
+    // HIGH -> positive encoder counts
+    // LOW  -> negative encoder counts
     if (error2 > 0) {
         digitalWrite(motor2_pin, HIGH);
-    } else {
+    }
+    else if (error2 < 0) {
         digitalWrite(motor2_pin, LOW);
     }
 
     analogWrite(enable2_pin, motor2Speed);
 
-    // // MOTOR 1 CONTROL //
-    // if (abs(error1) > POSITION_TOLERANCE) {
-    //     Serial.println("M1: FORWARD");
-    //     // Move motor 1 forward
-    //     digitalWrite(motor1_pin, HIGH);
-    //     analogWrite(enable1_pin, speed);
-    // } else if (abs(error1) > 0) {
-    //     Serial.println("M1: BACKWARD");
-    //     // Move motor 1 backward
-    //     digitalWrite(motor1_pin, LOW);
-    //     analogWrite(enable1_pin, speed);
-    // } else {
-    //     Serial.println("M1: STOP");
-    //     // Stop motor 1
-    //     analogWrite(enable1_pin, 0);
-    // }
-
-    // // MOTOR 2 CONTROL //
-    // if (abs(error2) > POSITION_TOLERANCE) {
-    //     // Move motor 2 forward
-    //     digitalWrite(motor2_pin, HIGH);
-    //     analogWrite(enable2_pin, speed);
-    // } else if (abs(error2) > 0) {
-    //     // Move motor 2 backward
-    //     digitalWrite(motor2_pin, LOW);
-    //     analogWrite(enable2_pin, speed);
-    // } else {
-    //     // Stop motor 2
-    //     analogWrite(enable2_pin, 0);
-    // }
-
-    // Check if both motors have reached their targets //
-    if (abs(error1) <= POSITION_TOLERANCE && abs(error2) <= POSITION_TOLERANCE) {
+    // TARGET REACHED //
+    if (abs(error1) <= POSITION_TOLERANCE &&
+        abs(error2) <= POSITION_TOLERANCE) {
         Serial.println("=== TARGET REACHED ===");
-        completed = true;
         // Stop both motors
         analogWrite(enable1_pin, 0);
         analogWrite(enable2_pin, 0);
 
+        completed = true;
     }
 }
+
 
 bool MotionController::isCompleted() const {
     return completed;
@@ -181,6 +188,8 @@ void MotionController::calculateMotorTargets() {
     Serial.println(targetMotor2);
 }
 
+
+// State functions
 void MotionController::Idle() {
     // Stop both motors
     analogWrite(enable1_pin, 0);
