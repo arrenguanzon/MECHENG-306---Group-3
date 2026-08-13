@@ -1,58 +1,113 @@
-#include "encoder.h"
-#include <Arduino.h> 
+// #include "encoder.h"
+// #include <Arduino.h> 
+// #include <motion.h>
 
-#define gantry_width 100
-#define gantry_length 100
+// // Set up encoder pins
+// //motor 1 purple wires
+// #define ENCODER1_A 18
+// #define ENCODER1_B 19
+// //motor 2 green wires
+// #define ENCODER2_A 20
+// #define ENCODER2_B 21
 
-#define MM_PER_COUNT (15.0f * PI / 8256.0f) // 1 count = 5.71 um
+// #define motor1_pin 4
+// #define enable1_pin 5
+// #define enable2_pin 6
+// #define motor2_pin 7
 
-Encoder::Encoder() {
-    motor1Count = 0;
-    motor2Count = 0;
-}
+// int M2_speed = 75;
+// int M1_speed = M2_speed * 1.3;
 
-long Encoder::convertToCounts(float distanceInMM) {
-    // return (long)round(distanceInMM / MM_PER_COUNT);
-    float counts = distanceInMM / MM_PER_COUNT;
+// int xCounts = 0;
+// int yCounts = 0;
 
-    // Debugging Prints
-    // Serial.print("Distance: ");
-    // Serial.println(distanceInMM);
+// encoder::encoder()
+// {
+//     currentPos = 0;
+//     destinationPos = 0;
+//     currentCountA = 0;
+//     currentCountB = 0;
+// }
 
-    // Serial.print("MM per count: ");
-    // Serial.println(MM_PER_COUNT, 8);
+// int encoder::convertToCounts(int mm)
+// {
+//     return mm * 9.513;
+// }
 
-    // Serial.print("Calculated counts: ");
-    // Serial.println(counts);
 
-    return (int)round(counts);
-}
 
-long Encoder::getMotor1Count() {
-    return motor1Count;
-}
+// int encoder::moveTo(int x, int y)
+// {
+//     xCounts = 0;
+//     xCounts = convertToCounts(x);
+//     yCounts = 0;
+//     yCounts = convertToCounts(y);
+   
 
-long Encoder::getMotor2Count() {
-    return motor2Count;
-}
 
-void Encoder::incrementMotor1Count() {
-    motor1Count++;
-}
+//     if (currentCountA < xCounts)
+//     {
+//         // move motors forward
+//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, LOW);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+//     xCounts++;
+//     Serial.print("xCounts: ");
+//     Serial.println(xCounts);
+//     }
+//     else if (currentCountA > xCounts)
+//     {
+//         // move motors backward
+//         digitalWrite(motor1_pin, LOW);
+//     digitalWrite(motor2_pin, HIGH);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+//     xCounts--;
+//     Serial.print("xCounts: ");
+//     Serial.println(xCounts);
+//     }
+//     else
+//     {
+//         // stop motors
+//         digitalWrite(motor1_pin, LOW);
+//         digitalWrite(motor2_pin, LOW);
+//     }
 
-void Encoder::incrementMotor2Count() {
-    motor2Count++;
-}
+//     if (currentCountB < yCounts)
+//     {
+//         // move motors forward
+//       digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, HIGH);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+//     yCounts++;
+//      Serial.print("yCounts: ");
+//     Serial.println(yCounts);
+    
+//     }
+//     else if (currentCountB > yCounts)
+//     {
+//         // move motors backward
+//     digitalWrite(motor1_pin, LOW);
+//     digitalWrite(motor2_pin, LOW);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+//     yCounts--;
+//      Serial.print("yCounts: ");
+//     Serial.println(yCounts);
+//     }
+//     else
+//     {
+//         // stop motors
+//         digitalWrite(motor1_pin, LOW);
+//         digitalWrite(motor2_pin, LOW);
+//     }
 
-void Encoder::decrementMotor1Count() {
-    motor1Count--;
-}
 
-void Encoder::decrementMotor2Count() {
-    motor2Count--;
-}
+//     return 0;
+// }
 
-void Encoder::resetCounts() {
-    motor1Count = 0;
-    motor2Count = 0;
-}
+// //need to double check direction I've got no idea whether this logc will work
+
+
