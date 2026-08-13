@@ -1,6 +1,4 @@
 #include <Arduino.h>
-#include <encoder.h>
-#include <motion.h>
 
 
 #define motor1_pin 7
@@ -38,8 +36,6 @@ void RightISR();
 void Homing();
 void Delay(int delayTime);
 void HomingIdle();
-
-encoder encoderObject;
 
 
 void setup()
@@ -130,9 +126,9 @@ void Homing() {
                 StartDelay(1000);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (last_pressed == sL) {
+                homingState = MOVE_RIGHT;
                 HomingIdle();
                 StartDelay(1000);
-                homingState = MOVE_RIGHT;
             } else {
                 digitalWrite(motor1_pin, LOW);
                 digitalWrite(motor2_pin, LOW);
