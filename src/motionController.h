@@ -20,8 +20,13 @@ class MotionController {
         float& absoluteX;
         float& absoluteY;
 
-        int motor1Error;
-        int motor2Error;
+        // Track previous integrals
+        float prevIntegralMotor1;
+        float prevIntegralMotor2;
+
+        // Integral terms for PID control
+        float integralMotor1;
+        float integralMotor2;
 
         bool completed;
         

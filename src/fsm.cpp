@@ -95,5 +95,3 @@ const char* FSM::getStateName() const {
             return "UNKNOWN";
     }
 }
-
-

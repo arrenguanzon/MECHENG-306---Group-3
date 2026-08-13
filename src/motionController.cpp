@@ -10,6 +10,16 @@
 int M2_speed = 100;
 int M1_speed = M2_speed * 1.3;
 
+// Maximum and minimum speed limits for motors
+int MAX_SPEED = 100; // Change to actual value
+
+// Controller gains
+float Kp = 0.0f; // tune
+float Ki = 0.0f; // tune
+
+// Position tolerance (acceptable error in encoder counts)
+int positionTolerance = 100; //adjust based on testing
+
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
     targetY = 0.0f;
@@ -17,6 +27,13 @@ MotionController::MotionController(Encoder& encoder, float& absoluteX, float& ab
 
     targetMotor1 = 0;
     targetMotor2 = 0;
+
+    prevIntegralMotor1 = 0;
+    prevIntegralMotor2 = 0;
+
+    integralMotor1 = 0;
+    integralMotor2 = 0;
+
     completed = true;
 }
 
@@ -33,44 +50,73 @@ void MotionController::update() {
     if (completed) {
         return;
     }
+
+    // Update current motor positions
     int currentMotor1 = encoder.getMotor1Count();
     int currentMotor2 = encoder.getMotor2Count();
 
-    // MOTOR 1 CONTROL //
-    if (currentMotor1 < targetMotor1) {
-        // Move motor 1 forward
-        digitalWrite(motor1_pin, HIGH);
-        analogWrite(enable1_pin, speed);
-    } else if (currentMotor1 > targetMotor1) {
-        // Move motor 1 backward
-        digitalWrite(motor1_pin, LOW);
-        analogWrite(enable1_pin, speed);
-    } else {
+    // Calculate errors
+    int motor1Error = targetMotor1 - currentMotor1;
+    int motor2Error = targetMotor2 - currentMotor2;
+
+    if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
+        digitalWrite(motor1_pin, 0);
         analogWrite(enable1_pin, 0);
-    }
 
-    // MOTOR 2 CONTROL //
-    if (currentMotor2 < targetMotor2) {
-        // Move motor 2 forward
-        digitalWrite(motor2_pin, HIGH);
-        analogWrite(enable2_pin, speed);
-    } else if (currentMotor2 > targetMotor2) {
-        // Move motor 2 backward
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable2_pin, speed);
+        // Reset integral terms
+        integralMotor1 = 0;
+        prevIntegralMotor1 = 0;
     } else {
-        // Stop motor 2
-        analogWrite(enable2_pin, 0);
+        // Integral terms for PID control
+        integralMotor1 = prevIntegralMotor1 + Ki * abs(motor1Error);
+        // Motor output
+        float speedMotor1 = Kp * abs(motor1Error) + integralMotor1;
+
+        // Integral clamping to prevent windup
+        if (speedMotor1 > MAX_SPEED) {
+            speedMotor1 = MAX_SPEED;
+            integralMotor1 = prevIntegralMotor1; // Clamp: DON'T update integral!
+        } else {
+            prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
+        }
+
+        // MOTOR 1 CONTROL //
+        digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
+        analogWrite(enable1_pin, speedMotor1);
     }
 
-    // Check if both motors have reached their targets //
-    if (currentMotor1 == targetMotor1 && currentMotor2 == targetMotor2) {
-        completed = true;
-        // Stop both motors
-        analogWrite(enable1_pin, 0);
+    if (abs(motor2Error) <= positionTolerance) {
+        // Stop motor 2
+        digitalWrite(motor2_pin, 0);
         analogWrite(enable2_pin, 0);
 
+        // Reset integral terms
+        integralMotor2 = 0;
+        prevIntegralMotor2 = 0;
+    } else {
+        // Integral terms for PID control
+        integralMotor2 = prevIntegralMotor2 + Ki * abs(motor2Error);
+
+        // Calculate motor speed outputs
+        float speedMotor2 = Kp * abs(motor2Error) + integralMotor2;
+
+        // Integral clamping to prevent windup
+        if (speedMotor2 > MAX_SPEED) {
+            speedMotor2 = MAX_SPEED;
+            integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
+        } else {
+            prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
+        }
+
+        // MOTOR 2 CONTROL //
+        digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
+        analogWrite(enable2_pin, speedMotor2);
+    }
+
+    if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
+        completed = true;
+        return;
     }
 }
 
