@@ -52,12 +52,12 @@ void MotionController::update() {
     }
 
     // Update current motor positions
-    int currentMotor1 = encoder.getMotor1Count();
-    int currentMotor2 = encoder.getMotor2Count();
+    long currentMotor1 = encoder.getMotor1Count();
+    long currentMotor2 = encoder.getMotor2Count();
 
     // Calculate errors
-    int motor1Error = targetMotor1 - currentMotor1;
-    int motor2Error = targetMotor2 - currentMotor2;
+    long motor1Error = targetMotor1 - currentMotor1;
+    long motor2Error = targetMotor2 - currentMotor2;
 
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
