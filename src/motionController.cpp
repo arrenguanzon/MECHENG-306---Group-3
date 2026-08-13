@@ -14,8 +14,8 @@ int M1_speed = M2_speed * 1.3;
 int MAX_SPEED = 100; // Change to actual value
 
 // Controller gains
-float Kp = 0.0f; // tune
-float Ki = 0.0f; // tune
+float Kp = 0.1f; // tune
+float Ki = 0.01f; // tune
 
 // Position tolerance (acceptable error in encoder counts)
 int positionTolerance = 100; //adjust based on testing
@@ -42,6 +42,13 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetY = y;
     this->speed = speed;
     calculateMotorTargets();
+
+    // PRINTING /////////////////////////////////////////////////////////////////
+    Serial.print("Target Motor 1 Counts: ");
+    Serial.println(targetMotor1);
+    Serial.print("Target Motor 2 Counts: ");
+    Serial.println(targetMotor2);
+    /////////////////////////////////////////////////////////////////////////////
     
     completed = false;
 }

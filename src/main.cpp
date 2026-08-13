@@ -55,6 +55,7 @@ void setup()
     pinMode(motor2_pin, OUTPUT);
 
     Serial.begin(9600);
+    
     // Set up limit switch pins
     pinMode(switch_top, INPUT_PULLUP);
     pinMode(switch_bottom, INPUT_PULLUP);
