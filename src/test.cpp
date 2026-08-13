@@ -1,5 +1,6 @@
-// #include <Arduino.h>
+#include <Arduino.h>
 
+>>>>>>> parent of 64d433a (homing works)
 
 
 // #define motor1_pin 7
@@ -28,16 +29,8 @@
 // volatile States state = IDLE;
 // volatile SwitchState last_pressed = START;
 
-// //function prototypes
 
-
-// void BottomISR();
-// void LeftISR();
-
-
-// void setup()
-// {
-//     // Set up motor pins
+// void setup(){
 //     pinMode(motor1_pin, OUTPUT);
 //     pinMode(motor2_pin, OUTPUT);
 
@@ -83,26 +76,4 @@
 //     last_pressed = sL;
 //      analogWrite(enable1_pin, 0);
 //     analogWrite(enable2_pin, 0);
-
-//     Serial.print("interrupt");
-
-//     while(1);
-    
-//     // Serial.print("last_pressed: ");
-//     // Serial.println("Left switch pressed");
-//     // Idle();
 // }
-
-
-
-// void loop(){
-
-//     digitalWrite(motor1_pin, HIGH);
-//     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, 100);
-//     analogWrite(enable2_pin, 100);
-
-// }
-
-
-

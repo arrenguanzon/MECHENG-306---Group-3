@@ -29,6 +29,7 @@ float absoluteX = 0.0f;
 float absoluteY = 0.0f;
 
 Encoder encoder;
+
 MotionController motionController(encoder, absoluteX, absoluteY);
 
 String user_input = "";
@@ -176,5 +177,3 @@ void ENCODER2BISR() {
         encoder.incrementMotor2Count();
     }
 }
-
-
