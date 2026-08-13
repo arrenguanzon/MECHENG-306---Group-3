@@ -20,8 +20,8 @@
 // #define ENCODER2_B 21
 
 
-// // int M2_speed = 75;
-// // int M1_speed = M2_speed * 1.3;
+// int M2_speed = 75;
+// int M1_speed = M2_speed * 1.3;
 
 
 // typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
@@ -52,20 +52,54 @@
 
 // }
 
-// void Idle(){
-//     digitalWrite(motor1_pin, 0);
-//     digitalWrite(motor2_pin, 0);
+// // new implements here
+
+// enum HomingState {
+//     MOVE_TO_LEFT,
+//     BOTTOM_EDGE_CASE_WAIT,
+//     MOVE_RIGHT,
+//     WAIT_AFTER_RIGHT,
+//     MOVE_TO_BOTTOM,
+//     MOVE_UP,
+//     HOMING_COMPLETE
+// };
+
+// HomingState homingState = MOVE_TO_LEFT;
+
+// unsigned long motorStartTime = 0;
+// unsigned long delayTime = 0;
+// bool delayActive = false;
+
+// void StartDelay(unsigned long ms) {
+//     delayTime = ms;
+//     motorStartTime = millis();
+//     delayActive = true;
+// }
+
+// // Returns true once the delay (if any) has elapsed.
+// bool DelayElapsed() {
+//     if (!delayActive) return true;
+//     if (millis() - motorStartTime >= delayTime) {
+//         delayActive = false;
+//         return true;
+//     }
+//     return false;
+// }
+
+// // Stops the motors
+// void HomingIdle() {
 //     analogWrite(enable1_pin, 0);
 //     analogWrite(enable2_pin, 0);
-
 // }
 
-// void BottomISR(){
-//     last_pressed = sB;
-// }
+// // ISRs for the limit switches
+// void BottomISR() { last_pressed = sB; }
+// ISR(PCINT0_vect) { last_pressed = sT; }
+// ISR(PCINT2_vect) { last_pressed = sR; }
+// void LeftISR()   { last_pressed = sL; }
 
-// ISR(PCINT0_vect) {
-//    last_pressed = sT;
+// void loop() {
+//     Homing();
 // }
 
 // ISR(PCINT2_vect) {

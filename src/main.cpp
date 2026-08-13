@@ -87,7 +87,6 @@ void setup()
 }
 
 void loop(){
-
     // Input reading
     while (Serial.available() > 0)
     {
