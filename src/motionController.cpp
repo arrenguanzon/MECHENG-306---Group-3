@@ -13,6 +13,9 @@ int M1_speed = M2_speed * 1.3;
 #define MAX_SPEED 100
 #define SLOW_ZONE 500
 #define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
+#define GANTRTY_WIDTH 0
+#define GANTRTY_LENGTH 0
+
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
@@ -28,6 +31,18 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetX = x;
     targetY = y;
     this->speed = speed;
+
+    
+    //hopefully this will do it but need to make sure absolute's get updated
+    
+    float newX = absoluteX + x;
+    float newY = absoluteY + y;
+
+    if(newX<0 || newY<0 || ( newX> GANTRTY_WIDTH) || ( newY > GANTRTY_LENGTH)) {
+
+         Serial.println("ERROR: Target outside gantry");
+         return;
+    }
 
     Serial.println("=== setTarget() ===");
     Serial.print("targetX: ");

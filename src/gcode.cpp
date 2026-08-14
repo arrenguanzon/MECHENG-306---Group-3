@@ -99,6 +99,7 @@ void GCode::tokeniseInput(const String &rc) {
             }
         }
     }
+
     // Validity checks for commands
     if (!valid) {
         valid_command = false;
@@ -118,6 +119,15 @@ void GCode::tokeniseInput(const String &rc) {
     // If the command is invalid, print an error message
     if (!valid_command) {
         printErrorCommand();
+    }
+
+    //inheriting speed --> NEED TO TEST!!!!
+    if(command == G1 && valid) {
+        if(has_speed) {
+            previous_speed = speed_target;
+        }else {
+            speed_target = previous_speed;
+        }
     }
 }
 
