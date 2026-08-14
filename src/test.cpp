@@ -1,6 +1,4 @@
-#include <Arduino.h>
-
->>>>>>> parent of 64d433a (homing works)
+//#include <Arduino.h>
 
 
 // #define motor1_pin 7

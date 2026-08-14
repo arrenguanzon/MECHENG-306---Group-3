@@ -1,6 +1,5 @@
 #include "encoder.h"
 #include <Arduino.h> 
-#include <motion.h>
 
 // Set up encoder pins
 #define ENCODER1_A 18
@@ -51,8 +50,13 @@ void Encoder::decrementMotor2Count() {
     motor2Count--;
 }
 
+void Encoder::resetCounts() {
+    motor1Count = 0;
+    motor2Count = 0;
+}
 
-int encoder::move(int x, int y)
+
+int Encoder::move(int x, int y)
 {
     int xCounts = 0;
     xCounts = convertToCounts(x);

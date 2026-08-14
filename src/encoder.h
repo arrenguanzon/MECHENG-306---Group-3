@@ -5,7 +5,7 @@
 
 // 1 count = 9.513mm
 
-class encoder {
+class Encoder {
 
     public:
     encoder();

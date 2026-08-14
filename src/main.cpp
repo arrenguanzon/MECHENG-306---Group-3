@@ -36,17 +36,14 @@ String user_input = "";
 FSM fsm(motionController, last_pressed);
 
 //function prototypes
-void TopISR();
 void BottomISR();
 void LeftISR();
-void RightISR();
 void Homing();
 void ENCODER1AISR();
 void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
 
-// encoder encoderObject;
 
 
 void setup()
