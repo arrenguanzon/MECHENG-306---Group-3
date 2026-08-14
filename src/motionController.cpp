@@ -55,7 +55,7 @@ void MotionController::setTarget(float x, float y, float speed) {
 
 void MotionController::update() {
     if (completed) {
-        Serial.println("Motion completed")
+        Serial.println("Motion completed");
         return;
     }
 
@@ -67,13 +67,13 @@ void MotionController::update() {
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
-    ////////////////////////////////
-    Serial.println("MOTOR ERRORS (these should not be zero and decrease until they are close to 0)");
+    ////////////////////////////////////////////////////////
+    Serial.println("MOTOR ERRORS "); // (these should not be zero, and they should decrease until they are close to 100)
     Serial.println("Motor 1 error: ");
     Serial.print(motor1Error);
     Serial.println("Motor 2 error: ");
-    Serial.print(motor1Error);
-    ////////////////////////////////
+    Serial.print(motor2Error);
+    ////////////////////////////////////////////////////////
 
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
@@ -143,9 +143,33 @@ bool MotionController::isCompleted() const {
 void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
+
+
+    Serial.println("=== calculateMotorTargets() ===");
+
+    Serial.print("motor1Counts: ");
+    Serial.println(motor1Counts);
+
+    Serial.print("motor2Counts: ");
+    Serial.println(motor2Counts);
+
+    Serial.print("Current M1: ");
+    Serial.println(encoder.getMotor1Count());
+
+    Serial.print("Current M2: ");
+    Serial.println(encoder.getMotor2Count());
+
+
     // Convert target positions to encoder counts
     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
+
+
+    Serial.print("Target M1: ");
+    Serial.println(targetMotor1);
+
+    Serial.print("Target M2: ");
+    Serial.println(targetMotor2);
 }
 
 void MotionController::Idle() {
@@ -155,13 +179,15 @@ void MotionController::Idle() {
 }
 
 void MotionController::Homing(const volatile SwitchState& switchState){
-    while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sB) || (switchState == MotionController::sR)){
-        if(switchState == MotionController::sB){
+    int a = 0;
+    while(switchState != MotionController::sL){
+        if(switchState == MotionController::sB && a == 0){
             digitalWrite(motor1_pin, LOW);
             digitalWrite(motor2_pin, HIGH);
             analogWrite(enable1_pin, M1_speed);
             analogWrite(enable2_pin, M2_speed); 
             delay(1000);
+            a = 1;
         }
         digitalWrite(motor1_pin, LOW);
         digitalWrite(motor2_pin, LOW);
@@ -170,22 +196,45 @@ void MotionController::Homing(const volatile SwitchState& switchState){
 
     }
     
-    Idle();
+    
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+    delay(500);
+
     // implement logic to move to the right
     digitalWrite(motor1_pin, HIGH);
     digitalWrite(motor2_pin, HIGH);
     analogWrite(enable1_pin, M1_speed);
     analogWrite(enable2_pin, M2_speed);
     delay(500);
-    Idle();
+    
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+    delay(500);
 
-    while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
+    // while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
+    while(switchState != MotionController::sB){
         digitalWrite(motor1_pin, HIGH);
         digitalWrite(motor2_pin, LOW);
         analogWrite(enable1_pin, M1_speed);
         analogWrite(enable2_pin, M2_speed);
+
     }
-    Idle();
+    
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+    delay(500);
+    
+    digitalWrite(motor1_pin, LOW);
+    digitalWrite(motor2_pin, HIGH);
+    analogWrite(enable1_pin, M1_speed);
+    analogWrite(enable2_pin, M2_speed);
+    delay(500);
+    
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+    delay(500);
+
     absoluteX = 0.0f;
     absoluteY = 0.0f;
     encoder.resetCounts();
