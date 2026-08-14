@@ -4,7 +4,7 @@
 #define gantry_width 100
 #define gantry_length 100
 
-#define MM_PER_COUNT 15*PI/8256 // 1 count = 5.71 um
+#define MM_PER_COUNT (15.0f*PI/8256.0f) // 1 count = 5.71 um
 
 Encoder::Encoder() {
     motor1Count = 0;
@@ -12,7 +12,9 @@ Encoder::Encoder() {
 }
 
 int Encoder::convertToCounts(float distanceInMM) {
-    return (distanceInMM / MM_PER_COUNT);
+    float counts = distanceInMM / MM_PER_COUNT;
+
+    return (int)round(counts);
 }
 
 int Encoder::getMotor1Count() {

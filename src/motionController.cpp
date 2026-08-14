@@ -55,6 +55,7 @@ void MotionController::setTarget(float x, float y, float speed) {
 
 void MotionController::update() {
     if (completed) {
+        Serial.println("Motion completed")
         return;
     }
 
@@ -65,6 +66,14 @@ void MotionController::update() {
     // Calculate errors
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
+
+    ////////////////////////////////
+    Serial.println("MOTOR ERRORS (these should not be zero and decrease until they are close to 0)");
+    Serial.println("Motor 1 error: ");
+    Serial.print(motor1Error);
+    Serial.println("Motor 2 error: ");
+    Serial.print(motor1Error);
+    ////////////////////////////////
 
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
@@ -132,8 +141,8 @@ bool MotionController::isCompleted() const {
 }
 
 void MotionController::calculateMotorTargets() {
-    int motor1Counts = encoder.convertToCounts(targetX - targetY);
-    int motor2Counts = encoder.convertToCounts(targetX + targetY);
+    long motor1Counts = encoder.convertToCounts(targetX - targetY);
+    long motor2Counts = encoder.convertToCounts(targetX + targetY);
     // Convert target positions to encoder counts
     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
