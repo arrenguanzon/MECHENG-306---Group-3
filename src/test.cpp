@@ -1,19 +1,19 @@
-#include <Arduino.h>
+// #include <Arduino.h>
 
 
-#define motor1_pin 4
-#define enable1_pin 5
-#define enable2_pin 6
-#define motor2_pin 7
+// #define motor1_pin 4
+// #define enable1_pin 5
+// #define enable2_pin 6
+// #define motor2_pin 7
 
 
-#define switch_top 2
-#define switch_bottom 3
-#define switch_left 18
-#define switch_right 19
+// #define switch_top 2
+// #define switch_bottom 3
+// #define switch_left 18
+// #define switch_right 19
 
 
-#define home_speed 100
+// #define home_speed 100
 
 
 // typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;

@@ -13,9 +13,9 @@ int M1_speed = M2_speed * 1.3;
 // Maximum and minimum speed limits for motors
 int MAX_SPEED = 100; // Change to actual value
 
-// Controller gains
-float Kp = 0.0f; // tune
-float Ki = 0.0f; // tune
+// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
+float Kp = 0.05f; // tune
+float Ki = 0.00f; // tune
 
 // Position tolerance (acceptable error in encoder counts)
 int positionTolerance = 100; //adjust based on testing
