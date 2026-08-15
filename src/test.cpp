@@ -18,14 +18,14 @@
 #define ENCODER2_B 21
 
 
-int M2_speed = 75;
-int M1_speed = M2_speed * 1.3;
+// int M2_speed = 75;
+// int M1_speed = 75;//M2_speed * 1.3;
 
 
 typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
 typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
 volatile States state = IDLE;
-volatile SwitchState last_pressed = START;
+//volatile SwitchState last_pressed = START;
 
 //function prototypes
 
@@ -72,50 +72,35 @@ enum HomingState {
     HOMING_COMPLETE
 };
 
-HomingState homingState = MOVE_TO_LEFT;
-
-// unsigned long motorStartTime = 0;
-// unsigned long delayTime = 0;
-// bool delayActive = false;
-
-// void StartDelay(unsigned long ms) {
-//     delayTime = ms;
-//     motorStartTime = millis();
-//     delayActive = true;
-// }
-
-// // Returns true once the delay (if any) has elapsed.
-// bool DelayElapsed() {
-//     if (!delayActive) return true;
-//     if (millis() - motorStartTime >= delayTime) {
-//         delayActive = false;
-//         return true;
-//     }
-//     return false;
-// }
-
 // Stops the motors
 void HomingIdle() {
     analogWrite(enable1_pin, 0);
     analogWrite(enable2_pin, 0);
 }
 
+volatile SwitchState last_pressed = START;
 // ISRs for the limit switches
 void BottomISR() { last_pressed = sB; }
 ISR(PCINT0_vect) { last_pressed = sT; }
 ISR(PCINT2_vect) { last_pressed = sR; }
 void LeftISR()   { last_pressed = sL; }
 
-// void loop() {
-//     Homing();
-// }
+
+HomingState homingState = MOVE_TO_LEFT;
 
 void loop() {
-    digitalWrite(motor1_pin, LOW);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
+    Homing();
 }
+
+int M2_speed = 100;
+int M1_speed = 130;
+
+// void loop() {
+//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor2_pin, HIGH);
+//     analogWrite(enable1_pin, M1_speed);
+//     analogWrite(enable2_pin, M2_speed);
+// }
 
 void Homing() {
    // if (!DelayElapsed()) return;
@@ -128,6 +113,7 @@ void Homing() {
                 digitalWrite(motor2_pin, HIGH);
                 analogWrite(enable1_pin, M1_speed);
                 analogWrite(enable2_pin, M2_speed);
+                delay(500);
                 //StartDelay(1000);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (last_pressed == sL) {
@@ -142,6 +128,7 @@ void Homing() {
             break;
 
         case BOTTOM_EDGE_CASE_WAIT:
+            last_pressed = START;
             homingState = MOVE_TO_LEFT;
             break;
 
