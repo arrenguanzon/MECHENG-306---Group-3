@@ -17,6 +17,8 @@
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
+#define DEBOUNCE_MS 50
+
 
 // int M2_speed = 75;
 // int M1_speed = 75;//M2_speed * 1.3;
@@ -78,15 +80,46 @@ void HomingIdle() {
     analogWrite(enable2_pin, 0);
 }
 
+volatile unsigned long last_sT_time = 0;
+volatile unsigned long last_sB_time = 0;
+volatile unsigned long last_sL_time = 0;
+volatile unsigned long last_sR_time = 0;
+
 volatile SwitchState last_pressed = START;
-// ISRs for the limit switches
-void BottomISR() { last_pressed = sB; }
-ISR(PCINT0_vect) { last_pressed = sT; }
-ISR(PCINT2_vect) { last_pressed = sR; }
-void LeftISR()   { last_pressed = sL; }
-
-
 HomingState homingState = MOVE_TO_LEFT;
+
+// ISRs for the limit switches
+void BottomISR() {
+    unsigned long now = millis();
+    if (now - last_sB_time >= DEBOUNCE_MS) {
+        last_pressed = sB;
+        last_sB_time = now;
+    }
+}
+
+ISR(PCINT0_vect) {
+    unsigned long now = millis();
+    if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
+        last_pressed = sT;
+        last_sT_time = now;
+    }
+}
+
+ISR(PCINT2_vect) {
+    unsigned long now = millis();
+    if (digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) {
+        last_pressed = sR;
+        last_sR_time = now;
+    }
+}
+
+void LeftISR() {
+    unsigned long now = millis();
+    if (now - last_sL_time >= DEBOUNCE_MS) {
+        last_pressed = sL;
+        last_sL_time = now;
+    }
+}
 
 void loop() {
     Homing();
@@ -96,14 +129,13 @@ int M2_speed = 100;
 int M1_speed = 130;
 
 // void loop() {
-//     digitalWrite(motor1_pin, HIGH);
+//     digitalWrite(motor1_pin, LOW);
 //     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, M1_speed);
-//     analogWrite(enable2_pin, M2_speed);
+//     analogWrite(enable1_pin, 130);
+//     analogWrite(enable2_pin, 100);
 // }
 
 void Homing() {
-   // if (!DelayElapsed()) return;
 
     switch (homingState) {
 
@@ -113,7 +145,7 @@ void Homing() {
                 digitalWrite(motor2_pin, HIGH);
                 analogWrite(enable1_pin, M1_speed);
                 analogWrite(enable2_pin, M2_speed);
-                delay(500);
+                delay(1000);
                 //StartDelay(1000);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (last_pressed == sL) {
