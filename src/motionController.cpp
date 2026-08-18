@@ -18,7 +18,7 @@ float Kp = 0.05f; // tune
 float Ki = 0.00f; // tune
 
 // Position tolerance (acceptable error in encoder counts)
-int positionTolerance = 100; //adjust based on testing
+int positionTolerance = 200; //adjust based on testing
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
@@ -44,7 +44,7 @@ void MotionController::setTarget(float x, float y, float speed) {
     calculateMotorTargets();
 
     // PRINTING /////////////////////////////////////////////////////////////////
-    Serial.println("TARGET MOTOR COUNTS ARE BEING SET:");
+    Serial.println("TARGET MOTOR COUNTS [relative to current position when called]");
     Serial.print("Target Motor 1 Counts: ");
     Serial.println(targetMotor1);
     Serial.print("Target Motor 2 Counts: ");
@@ -61,12 +61,12 @@ void MotionController::update() {
         return;
     }
 
-    // Update current motor positions
+    // Update current motor positions (these are relative to the position when motion was called; starts at 0 and increases to target)
     long currentMotor1 = encoder.getMotor1Count();
     long currentMotor2 = encoder.getMotor2Count();
 
     ////////////////////////////////////////////////////////
-    Serial.println("CALCULATE CURRENT MOTOR POSITION [should be getting larger]");
+    Serial.println("CURRENT MOTOR POSITION [relative to position when command was called; increases from 0 to target]");
     Serial.print("Current motor 1: ");
     Serial.println(currentMotor1);
     Serial.print("Current motor 2: ");
@@ -74,12 +74,12 @@ void MotionController::update() {
     Serial.println("  ");
     ////////////////////////////////////////////////////////
 
-    // Calculate errors
+    // Calculate errors (direction of motion is determined by the sign of the error)
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
     ////////////////////////////////////////////////////////
-    Serial.println("CALCULATE THE MOTOR ERROR [should decrease until 100]"); // (these should not be zero, and they should decrease until 100 [position tolerance])
+    Serial.println("MOTOR ERRORS [should decrease to 100]"); // (decreases until 100 [position tolerance])
     Serial.print("Motor 1 error: ");
     Serial.println(motor1Error);
     Serial.print("Motor 2 error: ");
@@ -97,9 +97,9 @@ void MotionController::update() {
         prevIntegralMotor1 = 0;
     } else {
         // Integral terms for PID control
-        integralMotor1 = prevIntegralMotor1 + Ki * abs(motor1Error);
+        integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
         // Motor output
-        float speedMotor1 = Kp * abs(motor1Error) + integralMotor1;
+        float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
         if (speedMotor1 > MAX_SPEED) {
@@ -110,7 +110,7 @@ void MotionController::update() {
         }
 
         ////////////////////////////////////////////////////////
-        Serial.println("SETTING MOTOR 1 SPEED [maxes out at 100]"); 
+        Serial.println("MOTOR 1 SPEED [max of 100; should decrease the end]"); 
         Serial.print("Motor 1 speed: ");
         Serial.println(speedMotor1);
         Serial.println(" ");
@@ -131,10 +131,10 @@ void MotionController::update() {
         prevIntegralMotor2 = 0;
     } else {
         // Integral terms for PID control
-        integralMotor2 = prevIntegralMotor2 + Ki * abs(motor2Error);
+        integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
 
         // Calculate motor speed outputs
-        float speedMotor2 = Kp * abs(motor2Error) + integralMotor2;
+        float speedMotor2 = abs(Kp * motor2Error + integralMotor2);
 
         // Integral clamping to prevent windup
         if (speedMotor2 > MAX_SPEED) {
@@ -145,7 +145,7 @@ void MotionController::update() {
         }
 
         ////////////////////////////////////////////////////////
-        Serial.println("SETTING MOTOR 2 SPEED [maxes out at 100]"); 
+        Serial.println("MOTOR 2 SPEED [max of 100; should decrease the end]"); 
         Serial.print("Motor 2 speed: ");
         Serial.println(speedMotor2);
         Serial.println(" ");
@@ -170,32 +170,9 @@ void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-
-    Serial.println("=== calculateMotorTargets() ===");
-
-    Serial.print("motor1Counts: ");
-    Serial.println(motor1Counts);
-
-    Serial.print("motor2Counts: ");
-    Serial.println(motor2Counts);
-
-    Serial.print("Current M1: ");
-    Serial.println(encoder.getMotor1Count());
-
-    Serial.print("Current M2: ");
-    Serial.println(encoder.getMotor2Count());
-
-
     // Convert target positions to encoder counts
     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
-
-
-    Serial.print("Target M1: ");
-    Serial.println(targetMotor1);
-
-    Serial.print("Target M2: ");
-    Serial.println(targetMotor2);
 }
 
 void MotionController::Idle() {

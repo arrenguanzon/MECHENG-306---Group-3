@@ -14,7 +14,7 @@ Encoder::Encoder() {
 long Encoder::convertToCounts(float distanceInMM) {
     float counts = distanceInMM / MM_PER_COUNT;
 
-    return (int)round(counts);
+    return (long)round(counts);
 }
 
 long Encoder::getMotor1Count() {

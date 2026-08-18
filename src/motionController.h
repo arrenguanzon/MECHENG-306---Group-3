@@ -13,8 +13,8 @@ class MotionController {
         float speed;
 
         // Target Motor Encoder Counts
-        int targetMotor1; 
-        int targetMotor2;
+        long targetMotor1; 
+        long targetMotor2;
 
         // Reference to absolute position variables
         float& absoluteX;
