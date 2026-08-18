@@ -44,10 +44,12 @@ void MotionController::setTarget(float x, float y, float speed) {
     calculateMotorTargets();
 
     // PRINTING /////////////////////////////////////////////////////////////////
+    Serial.println("TARGET MOTOR COUNTS ARE BEING SET:");
     Serial.print("Target Motor 1 Counts: ");
     Serial.println(targetMotor1);
     Serial.print("Target Motor 2 Counts: ");
     Serial.println(targetMotor2);
+    Serial.println(" ");
     /////////////////////////////////////////////////////////////////////////////
     
     completed = false;
@@ -68,11 +70,12 @@ void MotionController::update() {
     long motor2Error = targetMotor2 - currentMotor2;
 
     ////////////////////////////////////////////////////////
-    Serial.println("MOTOR ERRORS "); // (these should not be zero, and they should decrease until they are close to 100)
+    Serial.println("CALCULATE THE MOTOR ERROR [should decrease until 100]"); // (these should not be zero, and they should decrease until 100 [position tolerance])
     Serial.println("Motor 1 error: ");
     Serial.print(motor1Error);
     Serial.println("Motor 2 error: ");
     Serial.print(motor2Error);
+    Serial.println(" ");
     ////////////////////////////////////////////////////////
 
     if (abs(motor1Error) <= positionTolerance)  {
@@ -96,6 +99,13 @@ void MotionController::update() {
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
+
+        ////////////////////////////////////////////////////////
+        Serial.println("SETTING MOTOR 1 SPEED [maxes out at 100]"); 
+        Serial.println("Motor 1 speed: ");
+        Serial.print(speedMotor1);
+        Serial.println(" ");
+        ////////////////////////////////////////////////////////
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -124,6 +134,13 @@ void MotionController::update() {
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
+
+        ////////////////////////////////////////////////////////
+        Serial.println("SETTING MOTOR 2 SPEED [maxes out at 100]"); 
+        Serial.println("Motor 2 speed: ");
+        Serial.print(speedMotor2);
+        Serial.println(" ");
+        ////////////////////////////////////////////////////////
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
