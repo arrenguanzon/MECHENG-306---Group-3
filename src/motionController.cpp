@@ -13,8 +13,8 @@ int M1_speed = M2_speed * 1.3;
 #define MAX_SPEED 100
 #define SLOW_ZONE 500
 #define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
-#define GANTRTY_WIDTH 0
-#define GANTRTY_LENGTH 0
+#define GANTRTY_WIDTH 25
+#define GANTRTY_LENGTH 18
 
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
