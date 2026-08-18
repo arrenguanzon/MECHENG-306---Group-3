@@ -65,17 +65,26 @@ void MotionController::update() {
     long currentMotor1 = encoder.getMotor1Count();
     long currentMotor2 = encoder.getMotor2Count();
 
+    ////////////////////////////////////////////////////////
+    Serial.println("CALCULATE CURRENT MOTOR POSITION [should be getting larger]");
+    Serial.print("Current motor 1: ");
+    Serial.println(currentMotor1);
+    Serial.print("Current motor 2: ");
+    Serial.println(currentMotor2);
+    Serial.println("  ");
+    ////////////////////////////////////////////////////////
+
     // Calculate errors
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
     ////////////////////////////////////////////////////////
     Serial.println("CALCULATE THE MOTOR ERROR [should decrease until 100]"); // (these should not be zero, and they should decrease until 100 [position tolerance])
-    Serial.println("Motor 1 error: ");
-    Serial.print(motor1Error);
-    Serial.println("Motor 2 error: ");
-    Serial.print(motor2Error);
-    Serial.println(" ");
+    Serial.print("Motor 1 error: ");
+    Serial.println(motor1Error);
+    Serial.print("Motor 2 error: ");
+    Serial.println(motor2Error);
+    Serial.println("  ");
     ////////////////////////////////////////////////////////
 
     if (abs(motor1Error) <= positionTolerance)  {
@@ -102,8 +111,8 @@ void MotionController::update() {
 
         ////////////////////////////////////////////////////////
         Serial.println("SETTING MOTOR 1 SPEED [maxes out at 100]"); 
-        Serial.println("Motor 1 speed: ");
-        Serial.print(speedMotor1);
+        Serial.print("Motor 1 speed: ");
+        Serial.println(speedMotor1);
         Serial.println(" ");
         ////////////////////////////////////////////////////////
 
@@ -137,8 +146,8 @@ void MotionController::update() {
 
         ////////////////////////////////////////////////////////
         Serial.println("SETTING MOTOR 2 SPEED [maxes out at 100]"); 
-        Serial.println("Motor 2 speed: ");
-        Serial.print(speedMotor2);
+        Serial.print("Motor 2 speed: ");
+        Serial.println(speedMotor2);
         Serial.println(" ");
         ////////////////////////////////////////////////////////
 
