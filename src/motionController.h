@@ -31,13 +31,14 @@ class MotionController {
 
         MotionController(Encoder& encoder, float& absoluteX, float& absoluteY);
         void setTarget(float x, float y, float speed);
-        void update();
+        void update(const volatile SwitchState& switchState);
         bool isCompleted() const;
         void calculateMotorTargets();
 
         // State motion controls
         void Idle();
         void Homing(const volatile SwitchState& switchState);
+        bool Fault(const volatile SwitchState& switchState);
 };
 
 #endif // MOTIONCONTROLLER_H

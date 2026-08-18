@@ -13,8 +13,8 @@ int M1_speed = M2_speed * 1.3;
 #define MAX_SPEED 100
 #define SLOW_ZONE 500
 #define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
-#define GANTRTY_WIDTH 25
-#define GANTRTY_LENGTH 18
+#define GANTRTY_WIDTH 250 //in mm
+#define GANTRTY_LENGTH 180 
 
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
@@ -41,6 +41,7 @@ void MotionController::setTarget(float x, float y, float speed) {
     if(newX<0 || newY<0 || ( newX> GANTRTY_WIDTH) || ( newY > GANTRTY_LENGTH)) {
 
          Serial.println("ERROR: Target outside gantry");
+         //state should go to idle not too sure how to do that from here
          return;
     }
 
@@ -62,8 +63,15 @@ void MotionController::setTarget(float x, float y, float speed) {
     completed = false;
 }
 
-void MotionController::update() { // This controls the motors
+void MotionController::update(const volatile SwitchState& switchState) { // This controls the motors
     Serial.println("=== update() ===");
+
+    if (Fault(switchState))  {
+        analogWrite(enable1_pin, 0);
+        analogWrite(enable2_pin, 0);
+        return;
+        //don't know if this is the best way to stop it 
+    }
 
     if (completed) {
         Serial.println("Motion already completed");
@@ -271,4 +279,13 @@ void MotionController::Homing(const volatile SwitchState& switchState){
     absoluteX = 0.0f;
     absoluteY = 0.0f;
     encoder.resetCounts();
+}
+
+bool MotionController::Fault(const volatile SwitchState& switchState)
+{
+    //for the limit switches might need ot brainstorm other faults
+    return switchState == MotionController::sL ||
+           switchState == MotionController::sR ||
+           switchState == MotionController::sT ||
+           switchState == MotionController::sB;
 }
