@@ -78,7 +78,7 @@ void GCode::tokeniseInput(const String &rc) {
                     if (!parseValue(token)) {
                         valid = false;
                     }
-                }
+                }  
             }
 
             // If this character is a new one, don't skip it --> it normally skips spaces this is here so it dosen't skip commands.
