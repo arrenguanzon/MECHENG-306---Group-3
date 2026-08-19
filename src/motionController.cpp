@@ -96,6 +96,8 @@ void MotionController::update(const volatile SwitchState& switchState) { // This
     Serial.print(" / ");
     Serial.println(targetMotor2);
 
+
+
     // MOTOR 1
     int motor1Speed;
 
@@ -179,6 +181,10 @@ void MotionController::update(const volatile SwitchState& switchState) { // This
 
 
 bool MotionController::isCompleted() const {
+    Serial.println("      Distance from origin       ");
+    Serial.print(absoluteX);
+    Serial.print(",");
+    Serial.print(absoluteY);
     return completed;
 }
 
