@@ -138,9 +138,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -149,9 +149,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -160,9 +160,9 @@ void ENCODER2AISR() {
     bool B = digitalRead(ENCODER2_B);
 
     if (A == B) {
-        encoder.incrementMotor2Count();
-    } else {
         encoder.decrementMotor2Count();
+    } else {
+        encoder.incrementMotor2Count();
     }
 }
 
@@ -171,10 +171,8 @@ void ENCODER2BISR() {
     bool B = digitalRead(ENCODER2_B);
 
     if (A != B) {
-        encoder.incrementMotor2Count();
-    } else {
         encoder.decrementMotor2Count();
+    } else {
+        encoder.incrementMotor2Count();
     }
 }
-
-

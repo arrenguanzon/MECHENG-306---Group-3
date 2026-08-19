@@ -113,7 +113,6 @@ void MotionController::update() {
         Serial.println("MOTOR 1 SPEED [max of 100; should decrease the end]"); 
         Serial.print("Motor 1 speed: ");
         Serial.println(speedMotor1);
-        Serial.println(" ");
         ////////////////////////////////////////////////////////
 
         // MOTOR 1 CONTROL //
