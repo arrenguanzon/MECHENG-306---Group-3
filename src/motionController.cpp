@@ -18,7 +18,7 @@ float Kp = 0.05f; // tune
 float Ki = 0.00f; // tune
 
 // Position tolerance (acceptable error in encoder counts)
-int positionTolerance = 200; //adjust based on testing
+int positionTolerance = 800; //adjust based on testing
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
