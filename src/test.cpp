@@ -24,7 +24,7 @@
 // int M1_speed = 75;//M2_speed * 1.3;
 
 
-typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
+//typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
 typedef enum States {IDLE, HOMING, MOVING, FAULT} States;
 volatile States state = IDLE;
 //volatile SwitchState last_pressed = START;
@@ -67,6 +67,7 @@ void setup()
 enum HomingState {
     MOVE_TO_LEFT,
     BOTTOM_EDGE_CASE_WAIT,
+    TOP_EDGE_CASE_WAIT,
     MOVE_RIGHT,
     WAIT_AFTER_RIGHT,
     MOVE_TO_BOTTOM,
@@ -85,38 +86,51 @@ volatile unsigned long last_sB_time = 0;
 volatile unsigned long last_sL_time = 0;
 volatile unsigned long last_sR_time = 0;
 
-volatile SwitchState last_pressed = START;
+// Independent flags, one per switch, instead of a single shared "last_pressed"
+volatile bool sT_flag = false;
+volatile bool sB_flag = false;
+volatile bool sL_flag = false;
+volatile bool sR_flag = false;
+
 HomingState homingState = MOVE_TO_LEFT;
 
 // ISRs for the limit switches
 void BottomISR() {
+    Serial.println("BOTTOM flag set");
     unsigned long now = millis();
     if (now - last_sB_time >= DEBOUNCE_MS) {
-        last_pressed = sB;
+        //last_pressed = sB;
+        sB_flag = true;
         last_sB_time = now;
     }
 }
 
 ISR(PCINT0_vect) {
+    Serial.println("TOP flag set");
     unsigned long now = millis();
     if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
-        last_pressed = sT;
+        //last_pressed = sT;
+        sT_flag = true;
         last_sT_time = now;
     }
 }
 
 ISR(PCINT2_vect) {
+    Serial.println("RIGHT flag set");
     unsigned long now = millis();
     if (digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) {
-        last_pressed = sR;
+        //last_pressed = sR;
+        sR_flag = true;
         last_sR_time = now;
     }
 }
 
 void LeftISR() {
+    Serial.println("LEFT flag set");
     unsigned long now = millis();
     if (now - last_sL_time >= DEBOUNCE_MS) {
-        last_pressed = sL;
+        //last_pressed = sL;
+        sL_flag = true;
         last_sL_time = now;
     }
 }
@@ -125,8 +139,11 @@ void loop() {
     Homing();
 }
 
-int M2_speed = 100;
-int M1_speed = 130;
+int M2_speed = 192;
+int M1_speed = 250;
+
+// int M2_speed = 100;
+// int M1_speed = 130;
 
 // void loop() {
 //     digitalWrite(motor1_pin, LOW);
@@ -140,15 +157,26 @@ void Homing() {
     switch (homingState) {
 
         case MOVE_TO_LEFT:
-            if (last_pressed == sB) {
+            if (sB_flag) {
+            //if (last_pressed == sB) {
+                sB_flag = false;
                 digitalWrite(motor1_pin, LOW);
                 digitalWrite(motor2_pin, HIGH);
                 analogWrite(enable1_pin, M1_speed);
                 analogWrite(enable2_pin, M2_speed);
                 delay(1000);
-                //StartDelay(1000);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
-            } else if (last_pressed == sL) {
+            } else if (sT_flag) {
+                sT_flag = false;
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, M1_speed);
+                analogWrite(enable2_pin, M2_speed);
+                delay(1000);
+                homingState = TOP_EDGE_CASE_WAIT;
+            }else if (sL_flag) {
+            //} else if (last_pressed == sL) {
+                sL_flag = false;
                 HomingIdle();
                 homingState = MOVE_RIGHT;
             } else {
@@ -160,7 +188,12 @@ void Homing() {
             break;
 
         case BOTTOM_EDGE_CASE_WAIT:
-            last_pressed = START;
+            //last_pressed = START;
+            homingState = MOVE_TO_LEFT;
+            break;
+        
+        case TOP_EDGE_CASE_WAIT:
+            //last_pressed = START;
             homingState = MOVE_TO_LEFT;
             break;
 
@@ -171,21 +204,20 @@ void Homing() {
             analogWrite(enable1_pin, M1_speed);
             analogWrite(enable2_pin, M2_speed);
             delay(500);
-            //StartDelay(500);
             homingState = WAIT_AFTER_RIGHT;
             break;
 
         case WAIT_AFTER_RIGHT:
             // delay elapsed, idle briefly then move to bottom
             HomingIdle();
-            //StartDelay(1000);
             homingState = MOVE_TO_BOTTOM;
             break;
 
         case MOVE_TO_BOTTOM:
-            if (last_pressed == sB) {
+            if (sB_flag) {
+            //if (last_pressed == sB) {
+                sB_flag = false;
                 HomingIdle();
-                //StartDelay(1000);
                 homingState = MOVE_UP;
             } else {
                 digitalWrite(motor1_pin, HIGH);
@@ -202,7 +234,6 @@ void Homing() {
             analogWrite(enable1_pin, M1_speed);
             analogWrite(enable2_pin, M2_speed);
             delay(500);
-            //StartDelay(500);
             homingState = HOMING_COMPLETE;
             break;
 
