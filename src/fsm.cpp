@@ -71,9 +71,9 @@ void FSM::update()
         case MOVING:
             motionController.update(switchState);
 
-              if (motionController.Fault(switchState)) {
-                state = FAULT;
-            }
+            //   if (motionController.Fault(switchState)) {
+            //     state = FAULT;
+            // }
             //double check this logic
             Serial.print("Current Position: entered update");
             if (motionController.isCompleted()){
@@ -82,7 +82,7 @@ void FSM::update()
             break;
 
         case FAULT:
-            motionController.Idle();
+            //motionController.Idle();
             break;
     }
 }

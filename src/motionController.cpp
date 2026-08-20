@@ -66,12 +66,12 @@ void MotionController::setTarget(float x, float y, float speed) {
 void MotionController::update(const volatile SwitchState& switchState) { // This controls the motors
     Serial.println("=== update() ===");
 
-    if (Fault(switchState))  {
-        analogWrite(enable1_pin, 0);
-        analogWrite(enable2_pin, 0);
-        return;
-        //don't know if this is the best way to stop it 
-    }
+    // if (Fault(switchState))  {
+    //     analogWrite(enable1_pin, 0);
+    //     analogWrite(enable2_pin, 0);
+    //     return;
+    //     //don't know if this is the best way to stop it 
+    // }
 
     if (completed) {
         Serial.println("Motion already completed");
@@ -81,7 +81,7 @@ void MotionController::update(const volatile SwitchState& switchState) { // This
     // Get current encoder positions
     long current1 = encoder.getMotor1Count();
     long current2 = encoder.getMotor2Count();
-
+    //long currentx = ;
     // Calculate position errors
     long error1 = targetMotor1 - current1;
     long error2 = targetMotor2 - current2;
@@ -176,21 +176,19 @@ void MotionController::update(const volatile SwitchState& switchState) { // This
         analogWrite(enable2_pin, 0);
 
         completed = true;
+        
     }
 }
 
 
 bool MotionController::isCompleted() const {
-    Serial.println("      Distance from origin       ");
-    Serial.print(absoluteX);
-    Serial.print(",");
-    Serial.print(absoluteY);
     return completed;
 }
 
 void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
+    //should convert to absolute or something like that
 
     Serial.println("=== calculateMotorTargets() ===");
 
@@ -287,11 +285,11 @@ void MotionController::Homing(const volatile SwitchState& switchState){
     encoder.resetCounts();
 }
 
-bool MotionController::Fault(const volatile SwitchState& switchState)
-{
-    //for the limit switches might need ot brainstorm other faults
-    return switchState == MotionController::sL ||
-           switchState == MotionController::sR ||
-           switchState == MotionController::sT ||
-           switchState == MotionController::sB;
-}
+// bool MotionController::Fault(const volatile SwitchState& switchState)
+// {
+//     //for the limit switches might need ot brainstorm other faults
+//     return switchState == MotionController::sL ||
+//            switchState == MotionController::sR ||
+//            switchState == MotionController::sT ||
+//            switchState == MotionController::sB;
+// }

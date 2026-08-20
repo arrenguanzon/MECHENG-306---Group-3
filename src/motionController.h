@@ -38,7 +38,7 @@ class MotionController {
         // State motion controls
         void Idle();
         void Homing(const volatile SwitchState& switchState);
-        bool Fault(const volatile SwitchState& switchState);
+        //bool Fault(const volatile SwitchState& switchState);
 };
 
 #endif // MOTIONCONTROLLER_H
