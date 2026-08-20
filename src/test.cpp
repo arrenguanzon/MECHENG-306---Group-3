@@ -17,11 +17,11 @@
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
-#define DEBOUNCE_MS 50
+#define DEBOUNCE_MS 25
 
 
 // int M2_speed = 75;
-// int M1_speed = 75;//M2_speed * 1.3;
+// int M1_speed = 75;//M2_speed * 1.15;
 
 
 //typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
@@ -96,7 +96,7 @@ HomingState homingState = MOVE_TO_LEFT;
 
 // ISRs for the limit switches
 void BottomISR() {
-    Serial.println("BOTTOM flag set");
+    //Serial.println("BOTTOM flag set");
     unsigned long now = millis();
     if (now - last_sB_time >= DEBOUNCE_MS) {
         //last_pressed = sB;
@@ -106,7 +106,7 @@ void BottomISR() {
 }
 
 ISR(PCINT0_vect) {
-    Serial.println("TOP flag set");
+    //Serial.println("TOP flag set");
     unsigned long now = millis();
     if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
         //last_pressed = sT;
@@ -116,17 +116,18 @@ ISR(PCINT0_vect) {
 }
 
 ISR(PCINT2_vect) {
-    Serial.println("RIGHT flag set");
+   // Serial.println("RIGHT flag set");
     unsigned long now = millis();
-    if (digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) {
+    if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { {
         //last_pressed = sR;
         sR_flag = true;
         last_sR_time = now;
     }
 }
+}
 
 void LeftISR() {
-    Serial.println("LEFT flag set");
+    //Serial.println("LEFT flag set");
     unsigned long now = millis();
     if (now - last_sL_time >= DEBOUNCE_MS) {
         //last_pressed = sL;
@@ -139,16 +140,13 @@ void loop() {
     Homing();
 }
 
-int M2_speed = 192;
-int M1_speed = 250;
-
-// int M2_speed = 100;
-// int M1_speed = 130;
+int M2_speed = 225;
+int M1_speed = 255;
 
 // void loop() {
 //     digitalWrite(motor1_pin, LOW);
 //     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, 130);
+//     analogWrite(enable1_pin, 115);
 //     analogWrite(enable2_pin, 100);
 // }
 
