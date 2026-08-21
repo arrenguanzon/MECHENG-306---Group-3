@@ -1,4 +1,5 @@
 #include "fsm.h"
+#include "homing.h"
 
 FSM::FSM(MotionController& controller, volatile MotionController::SwitchState& switchState) : motionController(controller), switchState(switchState)
 {
@@ -37,7 +38,11 @@ void FSM::processCommand(const GCode& gcode)
             break;
 
         case HOMING:
-            // We'll implement this later
+            Homing::getInstance()->homingFunction();
+            if(Homing::getInstance()->homingComplete) {
+            setState(IDLE);
+            }
+
             break;
 
         case MOVING:
@@ -109,5 +114,7 @@ const char* FSM::getStateName() const {
             return "UNKNOWN";
     }
 }
+
+
 
 

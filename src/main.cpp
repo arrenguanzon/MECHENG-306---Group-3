@@ -3,6 +3,7 @@
 #include "gcode.h"
 #include "fsm.h"
 #include "motionController.h"
+#include "homing.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -20,6 +21,8 @@
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
+#define DEBOUNCE_MS 25
+
 
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
@@ -32,17 +35,20 @@ Encoder encoder;
 
 MotionController motionController(encoder, absoluteX, absoluteY);
 
+
 String user_input = "";
 FSM fsm(motionController, last_pressed);
 
 //function prototypes
 void BottomISR();
 void LeftISR();
-void Homing();
+void TopISR();
+void RightISR();
 void ENCODER1AISR();
 void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
+
 
 
 
@@ -111,24 +117,47 @@ void loop(){
     fsm.update();
 }
 
-void BottomISR(){
-    last_pressed = MotionController::sB;
+//Limit Switch ISR's implement limit switch when not in homing
+
+void BottomISR() {
+    //Serial.println("BOTTOM flag set");
+    unsigned long now = millis();
+    if (now - Homing::getInstance()->last_sB_time >= DEBOUNCE_MS) {
+        Homing::getInstance()->sB_flag = true;
+        Homing::getInstance()->last_sB_time = now;
+    }
 }
 
-ISR(PCINT0_vect) { // Top Limit Switch
-   last_pressed = MotionController::sT;
+ISR(PCINT0_vect) {
+    //Serial.println("TOP flag set");
+    unsigned long now = millis();
+    if (digitalRead(switch_top) == LOW && (now - Homing::getInstance()->last_sT_time >= DEBOUNCE_MS)) {
+        Homing::getInstance()->sT_flag = true;
+        Homing::getInstance()->last_sT_time = now;
+
+    }
 }
 
-ISR(PCINT2_vect) { // Right Limit Switch
-    last_pressed = MotionController::sR;
+ISR(PCINT2_vect) {
+   // Serial.println("RIGHT flag set");
+    unsigned long now = millis();
+    if ((digitalRead(switch_right) == LOW && (now - Homing::getInstance()->last_sR_time >= DEBOUNCE_MS)) ) { {
+        Homing::getInstance()->sR_flag = true;
+        Homing::getInstance()->last_sR_time = now;
+    }
+}
 }
 
-void LeftISR(){
-    last_pressed = MotionController::sL;
-    // Serial.print("last_pressed: ");
-    // Serial.println("Left switch pressed");
-    // Idle();
+void LeftISR() {
+    //Serial.println("LEFT flag set");
+    unsigned long now = millis();
+    if (now - Homing::getInstance()->last_sL_time >= DEBOUNCE_MS) {
+        Homing::getInstance()->sL_flag = true;
+        Homing::getInstance()->last_sL_time = now;
+    }
 }
+
+// encoder ISR's
 
 void ENCODER1AISR() {
     bool A = digitalRead(ENCODER1_A);

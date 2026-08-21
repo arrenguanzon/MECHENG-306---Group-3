@@ -9,8 +9,8 @@
 Encoder::Encoder() {
     motor1Count = 0;
     motor2Count = 0;
-    distancex = 0;
-    distancey = 0;
+    //distancex = 0;
+    //distancey = 0;
 }
 
 long Encoder::convertToCounts(float distanceInMM) {
