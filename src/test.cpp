@@ -99,7 +99,6 @@ void BottomISR() {
     //Serial.println("BOTTOM flag set");
     unsigned long now = millis();
     if (now - last_sB_time >= DEBOUNCE_MS) {
-        //last_pressed = sB;
         sB_flag = true;
         last_sB_time = now;
     }
@@ -109,7 +108,6 @@ ISR(PCINT0_vect) {
     //Serial.println("TOP flag set");
     unsigned long now = millis();
     if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
-        //last_pressed = sT;
         sT_flag = true;
         last_sT_time = now;
     }
@@ -119,7 +117,6 @@ ISR(PCINT2_vect) {
    // Serial.println("RIGHT flag set");
     unsigned long now = millis();
     if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { {
-        //last_pressed = sR;
         sR_flag = true;
         last_sR_time = now;
     }
@@ -130,15 +127,14 @@ void LeftISR() {
     //Serial.println("LEFT flag set");
     unsigned long now = millis();
     if (now - last_sL_time >= DEBOUNCE_MS) {
-        //last_pressed = sL;
         sL_flag = true;
         last_sL_time = now;
     }
 }
 
-void loop() {
-    Homing();
-}
+// void loop() {
+//     Homing();
+// }
 
 int M2_speed = 225;
 int M1_speed = 255;
