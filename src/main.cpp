@@ -46,8 +46,6 @@ void ENCODER2AISR();
 void ENCODER2BISR();
 
 
-
-
 void setup()
 {
     // Set up motor pins
@@ -82,6 +80,7 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
+
 
 }
 
@@ -118,15 +117,18 @@ void loop(){
 void BottomISR() {
     //Serial.println("BOTTOM flag set");
     unsigned long now = millis();
+    last_pressed = MotionController::sB;
     if (now - Homing::getInstance()->last_sB_time >= DEBOUNCE_MS) {
         Homing::getInstance()->sB_flag = true;
         Homing::getInstance()->last_sB_time = now;
+
     }
 }
 
 ISR(PCINT0_vect) {
    // Serial.println("TOP flag set");
     unsigned long now = millis();
+    last_pressed = MotionController::sT;
     if (digitalRead(switch_top) == LOW && (now - Homing::getInstance()->last_sT_time >= DEBOUNCE_MS)) {
         Homing::getInstance()->sT_flag = true;
         Homing::getInstance()->last_sT_time = now;
@@ -137,6 +139,7 @@ ISR(PCINT0_vect) {
 ISR(PCINT2_vect) {
    //Serial.println("RIGHT flag set");
     unsigned long now = millis();
+    last_pressed = MotionController::sR;
     if ((digitalRead(switch_right) == LOW && (now - Homing::getInstance()->last_sR_time >= DEBOUNCE_MS)) ) { {
         Homing::getInstance()->sR_flag = true;
         Homing::getInstance()->last_sR_time = now;
@@ -147,6 +150,7 @@ ISR(PCINT2_vect) {
 void LeftISR() {
     //Serial.println("LEFT flag set");
     unsigned long now = millis();
+    last_pressed = MotionController::sL;
     if (now - Homing::getInstance()->last_sL_time >= DEBOUNCE_MS) {
         Homing::getInstance()->sL_flag = true;
         Homing::getInstance()->last_sL_time = now;

@@ -69,12 +69,12 @@ void MotionController::setTarget(float x, float y, float speed) {
 void MotionController::update(const volatile SwitchState& switchState) { // This controls the motors
     Serial.println("=== update() ===");
 
-    // if (Fault(switchState))  {
-    //     analogWrite(enable1_pin, 0);
-    //     analogWrite(enable2_pin, 0);
-    //     return;
-    //     //don't know if this is the best way to stop it 
-    // }
+    if (Fault(switchState))  {
+        analogWrite(enable1_pin, 0);
+        analogWrite(enable2_pin, 0);
+        return;
+        //don't know if this is the best way to stop it 
+    }
 
     if (completed) {
         Serial.println("Motion already completed");
@@ -241,6 +241,17 @@ void MotionController::Idle() {
     analogWrite(enable2_pin, 0);
 }
 
+bool MotionController::Fault(const volatile SwitchState& switchState)
+{
+    //for the limit switches might need ot brainstorm other faults
+    return switchState == MotionController::sL ||
+           switchState == MotionController::sR ||
+           switchState == MotionController::sT ||
+           switchState == MotionController::sB;
+}
+
+
+
 
 //old homing
 // void MotionController::Homing(const volatile SwitchState& switchState){
@@ -305,11 +316,3 @@ void MotionController::Idle() {
 //     encoder.resetCounts();
 // }
 
-// bool MotionController::Fault(const volatile SwitchState& switchState)
-// {
-//     //for the limit switches might need ot brainstorm other faults
-//     return switchState == MotionController::sL ||
-//            switchState == MotionController::sR ||
-//            switchState == MotionController::sT ||
-//            switchState == MotionController::sB;
-// }

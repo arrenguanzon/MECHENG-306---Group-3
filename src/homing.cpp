@@ -22,12 +22,16 @@ Homing::Homing(){
 
 }
 
+
+
 void Homing::homingIdle() {
     analogWrite(6, 0); 
     analogWrite(5, 0);
 }
-
-void Homing::homingFunction(){
+void Homing::homingFunction(
+    MotionController& motionController,
+    volatile MotionController::SwitchState& switchState
+){
 
     switch (homingState) {
 
@@ -35,11 +39,8 @@ void Homing::homingFunction(){
             if (sB_flag) {
             //if (last_pressed == sB) {
                 sB_flag = false;
-                digitalWrite(7, LOW);
-                digitalWrite(4, HIGH);
-                analogWrite(6, M1_speed);
-                analogWrite(5, M2_speed);
-                delay(1000);
+                switchState = MotionController::START; //so that it dosen't fault because motion controll treats lm as a fault
+                motionController.setTarget(0.0f, 5.0f, 50.0f);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (sT_flag) {
                 sT_flag = false;
@@ -47,7 +48,8 @@ void Homing::homingFunction(){
                 digitalWrite(4, LOW);
                 analogWrite(6, M1_speed);
                 analogWrite(5, M2_speed);
-                delay(1000);
+                switchState = MotionController::START;
+                motionController.setTarget(0.0f, -5.0f, 50.0f);
                 homingState = TOP_EDGE_CASE_WAIT;
             }else if (sL_flag) {
             //} else if (last_pressed == sL) {
@@ -63,8 +65,10 @@ void Homing::homingFunction(){
             break;
 
         case BOTTOM_EDGE_CASE_WAIT:
-            //last_pressed = START;
-            homingState = MOVE_TO_LEFT;
+            motionController.update(switchState);
+            if (motionController.isCompleted()) {
+                homingState = MOVE_TO_LEFT;
+            }
             break;
         
         case TOP_EDGE_CASE_WAIT:
@@ -73,17 +77,16 @@ void Homing::homingFunction(){
             break;
 
         case MOVE_RIGHT:
-            // delay elapsed, move right briefly
             digitalWrite(7, HIGH);
             digitalWrite(4, HIGH);
             analogWrite(6, M1_speed);
             analogWrite(5, M2_speed);
-            delay(500);
+            switchState = MotionController::START; //so that it dosen't fault because motion controll treats lm as a fault
+            motionController.setTarget(5.0f, 0.0f, 50.0f);
             homingState = WAIT_AFTER_RIGHT;
             break;
 
         case WAIT_AFTER_RIGHT:
-            // delay elapsed, idle briefly then move to bottom
             homingIdle();
             homingState = MOVE_TO_BOTTOM;
             break;
@@ -103,12 +106,12 @@ void Homing::homingFunction(){
             break;
 
         case MOVE_UP:
-            // delay elapsed, move up briefly
             digitalWrite(7, LOW);
             digitalWrite(4, HIGH);
             analogWrite(6, M1_speed);
             analogWrite(5, M2_speed);
-            delay(500);
+            switchState = MotionController::START; //so that it dosen't fault because motion controll treats lm as a fault
+            motionController.setTarget(0.0f, 5.0f, 50.0f);
             homingState = HOMING_COMPLETE;
             break;
 

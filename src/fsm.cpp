@@ -49,6 +49,7 @@ void FSM::processCommand(const GCode& gcode)
 
         case FAULT:
             if (gcode.getCommand() == GCode::M999){
+                switchState = MotionController::START;
                 setState(IDLE);
             }
             break;
@@ -64,7 +65,10 @@ void FSM::update()
             break;
 
         case HOMING:
-            Homing::getInstance()->homingFunction();
+            Homing::getInstance()->homingFunction(
+                motionController,
+                switchState
+            );
             if (Homing::getInstance()->homingComplete) {
                 motionController.resetPosition();
                 setState(IDLE);
@@ -77,18 +81,17 @@ void FSM::update()
         case MOVING:
             motionController.update(switchState);
 
-            //   if (motionController.Fault(switchState)) {
-            //     state = FAULT;
-            // }
-            //double check this logic
-            Serial.print("Current Position: entered update");
+              if (motionController.Fault(switchState)) {
+                state = FAULT;
+                 Serial.println("Fault state, to exit fault state enter M999");
+            }
             if (motionController.isCompleted()){
                 setState(IDLE);
             }
             break;
 
         case FAULT:
-            //motionController.Idle();
+            motionController.Idle();
             break;
     }
 }

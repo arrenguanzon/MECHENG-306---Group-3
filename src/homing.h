@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <math.h>
 #include <string.h>
+#include "motionController.h"
 
 class Homing {
 
@@ -25,7 +26,10 @@ class Homing {
         sR_flag = false;
     }
 
-    void homingFunction();
+    void homingFunction(
+        MotionController& motionController,
+        volatile MotionController::SwitchState& switchState
+    );
 
     volatile unsigned long last_sT_time = 0;
     volatile unsigned long last_sB_time = 0;
@@ -59,8 +63,8 @@ class Homing {
 
     void homingIdle();
 
-    int M2_speed = 225;
-    int M1_speed = 255;
+    int M2_speed = 200;
+    int M1_speed = 200;
 };
 
 #endif
