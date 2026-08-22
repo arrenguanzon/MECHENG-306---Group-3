@@ -17,6 +17,7 @@ void FSM::processCommand(const GCode& gcode)
         case IDLE:
             if (gcode.getCommand() == GCode::G28) {
                 switchState = MotionController::START;
+                Homing::getInstance()->startHoming();
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
@@ -38,11 +39,7 @@ void FSM::processCommand(const GCode& gcode)
             break;
 
         case HOMING:
-            Homing::getInstance()->homingFunction();
-            if(Homing::getInstance()->homingComplete) {
-            setState(IDLE);
-            }
-
+            // Homing is advanced from update(), which runs every loop.
             break;
 
         case MOVING:
@@ -67,9 +64,13 @@ void FSM::update()
             break;
 
         case HOMING:
-             motionController.Homing(switchState);
-            // Homing has finished once Homing() returns
-            setState(IDLE);
+            Homing::getInstance()->homingFunction();
+            if (Homing::getInstance()->homingComplete) {
+                motionController.resetPosition();
+                setState(IDLE);
+                Serial.println("Homing Complete");
+                Serial.println("");
+            }
 
             break;
 

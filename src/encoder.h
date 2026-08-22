@@ -15,7 +15,7 @@ class Encoder {
     public:
         Encoder();
         long convertToCounts(float distanceInMM);
-        long convertTodistance(float counts);
+        long convertToDistance(float counts);
         long getMotor1Count();
         long getMotor2Count();
         void incrementMotor1Count();

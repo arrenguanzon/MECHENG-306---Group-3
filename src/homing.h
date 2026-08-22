@@ -16,6 +16,15 @@ class Homing {
         return instance;
     }
 
+    void startHoming() {
+        homingState = MOVE_TO_LEFT;
+        homingComplete = false;
+        sT_flag = false;
+        sB_flag = false;
+        sL_flag = false;
+        sR_flag = false;
+    }
+
     void homingFunction();
 
     volatile unsigned long last_sT_time = 0;
@@ -28,7 +37,7 @@ class Homing {
     volatile bool sL_flag = false;
     volatile bool sR_flag = false;
 
-    volatile bool homingComplete;
+    volatile bool homingComplete = false;
 
     private:
     Homing(); // Private constructor

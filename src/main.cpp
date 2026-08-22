@@ -18,8 +18,8 @@
 
 #define ENCODER1_A 18
 #define ENCODER1_B 19
-#define ENCODER2_A 20
-#define ENCODER2_B 21
+#define ENCODER2_A 20 //left encoders just fixed in the software and is currenly working
+#define ENCODER2_B 21 //left encoders just fixed in the software and is currenly working
 
 #define DEBOUNCE_MS 25
 
@@ -27,13 +27,9 @@
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
 
-// Absolution position tracker and Initialising Motion Controller
-float absoluteX = 0.0f;
-float absoluteY = 0.0f;
-
 Encoder encoder;
 
-MotionController motionController(encoder, absoluteX, absoluteY);
+MotionController motionController(encoder);
 
 
 String user_input = "";
@@ -129,7 +125,7 @@ void BottomISR() {
 }
 
 ISR(PCINT0_vect) {
-    //Serial.println("TOP flag set");
+   // Serial.println("TOP flag set");
     unsigned long now = millis();
     if (digitalRead(switch_top) == LOW && (now - Homing::getInstance()->last_sT_time >= DEBOUNCE_MS)) {
         Homing::getInstance()->sT_flag = true;
@@ -139,7 +135,7 @@ ISR(PCINT0_vect) {
 }
 
 ISR(PCINT2_vect) {
-   // Serial.println("RIGHT flag set");
+   //Serial.println("RIGHT flag set");
     unsigned long now = millis();
     if ((digitalRead(switch_right) == LOW && (now - Homing::getInstance()->last_sR_time >= DEBOUNCE_MS)) ) { {
         Homing::getInstance()->sR_flag = true;
@@ -164,9 +160,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 
@@ -175,9 +171,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 

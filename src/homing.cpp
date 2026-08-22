@@ -1,6 +1,8 @@
 #include "homing.h"
 #include "fsm.h"
 
+Homing* Homing::instance = nullptr;
+
 // #define motor1_pin 7
 // #define enable1_pin 6
 // #define enable2_pin 5
@@ -113,6 +115,7 @@ void Homing::homingFunction(){
         case HOMING_COMPLETE:
             homingIdle();
             homingComplete = true;
+            
             break;
     }
     

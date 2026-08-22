@@ -14,12 +14,12 @@ class MotionController {
         float speed;
 
         // Target Motor Encoder Counts
-        int targetMotor1; 
-        int targetMotor2;
+        long targetMotor1; 
+        long targetMotor2;
 
-        // Reference to absolute position variables
-        float& absoluteX;
-        float& absoluteY;
+        // absolute position variables
+        float absoluteX;
+        float absoluteY;
 
         int motor1Error;
         int motor2Error;
@@ -29,15 +29,16 @@ class MotionController {
     public:
         enum SwitchState {sT, sB, sL, sR, START};
 
-        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY);
+        MotionController(Encoder& encoder);
         void setTarget(float x, float y, float speed);
         void update(const volatile SwitchState& switchState);
         bool isCompleted() const;
         void calculateMotorTargets();
+        void resetPosition();
 
         // State motion controls
         void Idle();
-        void Homing(const volatile SwitchState& switchState);
+        //void Homing(const volatile SwitchState& switchState);
         //bool Fault(const volatile SwitchState& switchState);
 };
 

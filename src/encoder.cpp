@@ -30,7 +30,7 @@ long Encoder::convertToCounts(float distanceInMM) {
     return (int)round(counts);
 }
 
-long Encoder::convertTodistance(float counts){
+long Encoder::convertToDistance(float counts){
     float distance = counts*MM_PER_COUNT;
 
     return(int)round(distance);

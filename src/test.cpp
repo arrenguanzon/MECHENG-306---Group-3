@@ -1,4 +1,5 @@
 // #include <Arduino.h>
+// #include "encoder.h"
 
 
 // #define motor1_pin 7
@@ -37,6 +38,11 @@
 // void RightISR();
 // void Homing();
 // void HomingIdle();
+// void ENCODER1AISR();
+// void ENCODER1BISR();
+// void ENCODER2AISR();
+// void ENCODER2BISR();
+
 
 // void setup()
 // {
@@ -50,6 +56,16 @@
 //     pinMode(switch_bottom, INPUT_PULLUP);
 //     pinMode(switch_left, INPUT_PULLUP);
 //     pinMode(switch_right, INPUT_PULLUP);
+
+//     pinMode(ENCODER1_A, INPUT_PULLUP);
+//     pinMode(ENCODER1_B, INPUT_PULLUP);
+//     pinMode(ENCODER2_A, INPUT_PULLUP);
+//     pinMode(ENCODER2_B, INPUT_PULLUP);
+
+//     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), ENCODER1AISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
 
 //     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
 //     //Top switch
@@ -85,6 +101,13 @@
 // volatile unsigned long last_sL_time = 0;
 // volatile unsigned long last_sR_time = 0;
 
+// volatile bool sT_flag = false;
+// volatile bool sB_flag = false;
+// volatile bool sL_flag = false;
+// volatile bool sR_flag = false;
+
+// Encoder encoder;
+
 // volatile SwitchState last_pressed = START;
 // HomingState homingState = MOVE_TO_LEFT;
 
@@ -92,7 +115,7 @@
 // void BottomISR() {
 //     unsigned long now = millis();
 //     if (now - last_sB_time >= DEBOUNCE_MS) {
-//         last_pressed = sB;
+//         sB_flag = true;
 //         last_sB_time = now;
 //     }
 // }
@@ -100,7 +123,7 @@
 // ISR(PCINT0_vect) {
 //     unsigned long now = millis();
 //     if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
-//         last_pressed = sT;
+//          sT_flag = true;
 //         last_sT_time = now;
 //     }
 // }
@@ -108,7 +131,7 @@
 // ISR(PCINT2_vect) {
 //     unsigned long now = millis();
 //     if (digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) {
-//         last_pressed = sR;
+//          sR_flag = true;
 //         last_sR_time = now;
 //     }
 // }
@@ -116,8 +139,51 @@
 // void LeftISR() {
 //     unsigned long now = millis();
 //     if (now - last_sL_time >= DEBOUNCE_MS) {
-//         last_pressed = sL;
+//          sL_flag = true;
 //         last_sL_time = now;
+//     }
+// }
+// void ENCODER1AISR() {
+//     bool A = digitalRead(ENCODER1_A);
+//     bool B = digitalRead(ENCODER1_B);
+
+//     if (A == B) {
+//         encoder.incrementMotor1Count();
+//     } else {
+//         encoder.decrementMotor1Count();
+//     }
+// }
+
+// void ENCODER1BISR() {
+//     bool A = digitalRead(ENCODER1_A);
+//     bool B = digitalRead(ENCODER1_B);
+
+//     if (A != B) {
+//         encoder.incrementMotor1Count();
+//     } else {
+//         encoder.decrementMotor1Count();
+//     }
+// }
+
+// void ENCODER2AISR() {
+//     bool A = digitalRead(ENCODER2_A);
+//     bool B = digitalRead(ENCODER2_B);
+
+//     if (A == B) {
+//         encoder.decrementMotor2Count();
+//     } else {
+//         encoder.incrementMotor2Count();
+//     }
+// }
+
+// void ENCODER2BISR() {
+//     bool A = digitalRead(ENCODER2_A);
+//     bool B = digitalRead(ENCODER2_B);
+
+//     if (A != B) {
+//         encoder.decrementMotor2Count();
+//     } else {
+//         encoder.incrementMotor2Count();
 //     }
 // }
 
@@ -125,89 +191,52 @@
 // //     Homing();
 // // }
 
+
+
 // int M2_speed = 100;
 // int M1_speed = 130;
 
+// long current1 = encoder.getMotor1Count();
+// long current2 = encoder.getMotor2Count();
+
 // void loop() {
+
+//     static unsigned long lastEncoderPrint = 0;
+
+// if (millis() - lastEncoderPrint >= 250) {
+//     lastEncoderPrint = millis();
+
+//     Serial.print("Encoder 1: ");
+//     Serial.print(encoder.getMotor1Count());
+
+//     Serial.print(" | Encoder 2: ");
+//     Serial.println(encoder.getMotor2Count());
+// }
+
+
 //     digitalWrite(motor1_pin, LOW);
 //     digitalWrite(motor2_pin, LOW);
-//     analogWrite(enable1_pin, 130);
-//     analogWrite(enable2_pin, 100);
-// }
+//     analogWrite(enable1_pin, 100);
+//     analogWrite(enable2_pin, 0);
 
-// void Homing() {
+//     if(sB_flag) {
+//         Serial.println("bottom");
+//         sB_flag = false;
+//     }
 
-//     switch (homingState) {
+//     if(sT_flag) {
+//         Serial.println("top");
+//         sT_flag = false;
+//     }
 
-//         case MOVE_TO_LEFT:
-//             if (last_pressed == sB) {
-//                 digitalWrite(motor1_pin, LOW);
-//                 digitalWrite(motor2_pin, HIGH);
-//                 analogWrite(enable1_pin, M1_speed);
-//                 analogWrite(enable2_pin, M2_speed);
-//                 delay(1000);
-//                 //StartDelay(1000);
-//                 homingState = BOTTOM_EDGE_CASE_WAIT;
-//             } else if (last_pressed == sL) {
-//                 HomingIdle();
-//                 homingState = MOVE_RIGHT;
-//             } else {
-//                 digitalWrite(motor1_pin, LOW);
-//                 digitalWrite(motor2_pin, LOW);
-//                 analogWrite(enable1_pin, M1_speed);
-//                 analogWrite(enable2_pin, M2_speed);
-//             }
-//             break;
-
-//         case BOTTOM_EDGE_CASE_WAIT:
-//             last_pressed = START;
-//             homingState = MOVE_TO_LEFT;
-//             break;
-
-//         case MOVE_RIGHT:
-//             // delay elapsed, move right briefly
-//             digitalWrite(motor1_pin, HIGH);
-//             digitalWrite(motor2_pin, HIGH);
-//             analogWrite(enable1_pin, M1_speed);
-//             analogWrite(enable2_pin, M2_speed);
-//             delay(500);
-//             //StartDelay(500);
-//             homingState = WAIT_AFTER_RIGHT;
-//             break;
-
-//         case WAIT_AFTER_RIGHT:
-//             // delay elapsed, idle briefly then move to bottom
-//             HomingIdle();
-//             //StartDelay(1000);
-//             homingState = MOVE_TO_BOTTOM;
-//             break;
-
-//         case MOVE_TO_BOTTOM:
-//             if (last_pressed == sB) {
-//                 HomingIdle();
-//                 //StartDelay(1000);
-//                 homingState = MOVE_UP;
-//             } else {
-//                 digitalWrite(motor1_pin, HIGH);
-//                 digitalWrite(motor2_pin, LOW);
-//                 analogWrite(enable1_pin, M1_speed);
-//                 analogWrite(enable2_pin, M2_speed);
-//             }
-//             break;
-
-//         case MOVE_UP:
-//             // delay elapsed, move up briefly
-//             digitalWrite(motor1_pin, LOW);
-//             digitalWrite(motor2_pin, HIGH);
-//             analogWrite(enable1_pin, M1_speed);
-//             analogWrite(enable2_pin, M2_speed);
-//             delay(500);
-//             //StartDelay(500);
-//             homingState = HOMING_COMPLETE;
-//             break;
-
-//         case HOMING_COMPLETE:
-//             HomingIdle();
-//             break;
+//      if(sL_flag) {
+//         Serial.println("tleft");
+//         sL_flag = false;
+//     }
+//      if(sR_flag) {
+//         Serial.println("right");
+//         sR_flag = false;
 //     }
 // }
+
+
