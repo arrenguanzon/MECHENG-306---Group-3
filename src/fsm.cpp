@@ -16,6 +16,7 @@ void FSM::processCommand(const GCode& gcode)
         case IDLE:
             if (gcode.getCommand() == GCode::G28) {
                 switchState = MotionController::START;
+                motionController.StartHoming();
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
@@ -37,7 +38,8 @@ void FSM::processCommand(const GCode& gcode)
             break;
 
         case HOMING:
-            // We'll implement this later
+            // Don't accept another homing command
+            // while currently homing.
             break;
 
         case MOVING:
@@ -62,9 +64,10 @@ void FSM::update()
             break;
 
         case HOMING:
-             motionController.Homing(switchState);
-            // Homing has finished once Homing() returns
-            setState(IDLE);
+            motionController.HomingFunction();
+            if (motionController.isHomingComplete()) {
+                setState(IDLE);
+            }
 
             break;
 

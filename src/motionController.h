@@ -6,6 +6,8 @@
 #include "gcode.h"
 
 class MotionController {
+    public:
+        enum SwitchState {sT, sB, sL, sR, START};
     private:
         Encoder& encoder;
 
@@ -20,16 +22,37 @@ class MotionController {
         // Reference to absolute position variables
         float& absoluteX;
         float& absoluteY;
+        const volatile SwitchState& last_pressed;
 
         int motor1Error;
         int motor2Error;
 
-        bool completed;
+        bool moving_completed;
+
+        // Homing state machine and variables
+        enum HomingState {
+            MOVE_TO_LEFT,
+            BOTTOM_EDGE_CASE_WAIT,
+            TOP_EDGE_CASE_WAIT,
+            MOVE_RIGHT,
+            WAIT_AFTER_RIGHT,
+            MOVE_TO_BOTTOM,
+            MOVE_UP,
+            HOMING_COMPLETE
+        };
+        HomingState homingState = MOVE_TO_LEFT;
+        volatile bool sT_flag = false;
+        volatile bool sB_flag = false;
+        volatile bool sL_flag = false;
+        volatile bool sR_flag = false;
+        int homing_M2_Speed = 200;
+        int homing_M1_Speed = 200;
+        volatile bool homingComplete = false;
+
         
     public:
-        enum SwitchState {sT, sB, sL, sR, START};
 
-        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY);
+        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, const volatile SwitchState& last_pressed);
         void setTarget(float x, float y, float speed);
         void update();
         bool isCompleted() const;
@@ -37,7 +60,13 @@ class MotionController {
 
         // State motion controls
         void Idle();
-        void Homing(const volatile SwitchState& switchState);
+        // Homing state functions
+        void HomingIdle();
+        void HomingFunction();
+        bool isHomingComplete() const;
+        void StartHoming();
+        void HomingFlagSetter();
+
 };
 
 #endif // MOTIONCONTROLLER_H

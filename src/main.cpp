@@ -29,7 +29,7 @@ float absoluteX = 0.0f;
 float absoluteY = 0.0f;
 
 Encoder encoder;
-MotionController motionController(encoder, absoluteX, absoluteY);
+MotionController motionController(encoder, absoluteX, absoluteY, last_pressed);
 
 String user_input = "";
 FSM fsm(motionController, last_pressed);

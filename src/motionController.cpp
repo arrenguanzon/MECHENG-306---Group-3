@@ -14,14 +14,14 @@ int M1_speed = M2_speed * 1.3;
 #define SLOW_ZONE 500
 #define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
 
-MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
+MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, const volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
     targetY = 0.0f;
     speed = 0.0f;
 
     targetMotor1 = 0;
     targetMotor2 = 0;
-    completed = true;
+    moving_completed = true;
 }
 
 void MotionController::setTarget(float x, float y, float speed) {
@@ -44,13 +44,13 @@ void MotionController::setTarget(float x, float y, float speed) {
     Serial.print("targetMotor2: ");
     Serial.println(targetMotor2);
     
-    completed = false;
+    moving_completed = false;
 }
 
 void MotionController::update() { // This controls the motors
     Serial.println("=== update() ===");
 
-    if (completed) {
+    if (moving_completed) {
         Serial.println("Motion already completed");
         return;
     }
@@ -150,13 +150,13 @@ void MotionController::update() { // This controls the motors
         analogWrite(enable1_pin, 0);
         analogWrite(enable2_pin, 0);
 
-        completed = true;
+        moving_completed = true;
     }
 }
 
 
 bool MotionController::isCompleted() const {
-    return completed;
+    return moving_completed;
 }
 
 void MotionController::calculateMotorTargets() {
@@ -196,64 +196,119 @@ void MotionController::Idle() {
     analogWrite(enable2_pin, 0);
 }
 
-void MotionController::Homing(const volatile SwitchState& switchState){
-    int a = 0;
-    while(switchState != MotionController::sL){
-        if(switchState == MotionController::sB && a == 0){
+void MotionController::HomingIdle(){
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+}
+
+void MotionController::HomingFunction() {
+    switch (homingState) {
+        case MOVE_TO_LEFT:
+            if (last_pressed == sB) {
+            //if (last_pressed == sB) {
+                sB_flag = false;
+                setTarget(0.0f, 5.0f, 50.0f);
+                homingState = BOTTOM_EDGE_CASE_WAIT;
+            } else if (last_pressed == sT) {
+                sT_flag = false;
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+                setTarget(0.0f, -5.0f, 50.0f);
+                homingState = TOP_EDGE_CASE_WAIT;
+            }else if (last_pressed == sL) {
+            //} else if (last_pressed == sL) {
+                sL_flag = false;
+                HomingIdle();
+                homingState = MOVE_RIGHT;
+            } else {
+                digitalWrite(motor1_pin, LOW);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+            }
+            break;
+
+        case BOTTOM_EDGE_CASE_WAIT:
+            update();
+            if (isCompleted()) {
+                homingState = MOVE_TO_LEFT;
+            }
+            break;
+        
+        case TOP_EDGE_CASE_WAIT:
+            update();
+            if (isCompleted()) {
+                homingState = MOVE_TO_LEFT;
+            }
+            break;
+
+        case MOVE_RIGHT:
+            digitalWrite(motor1_pin, HIGH);
+            digitalWrite(motor2_pin, HIGH);
+            analogWrite(enable1_pin, homing_M1_Speed);
+            analogWrite(enable2_pin, homing_M2_Speed);
+            setTarget(5.0f, 0.0f, 50.0f);
+            homingState = WAIT_AFTER_RIGHT;
+            break;
+
+        case WAIT_AFTER_RIGHT:
+            update();
+            if (isCompleted()) {
+                HomingIdle();
+                homingState = MOVE_TO_BOTTOM;
+            }
+            break;
+
+        case MOVE_TO_BOTTOM:
+            if (last_pressed == sB) {
+            //if (last_pressed == sB) {
+                sB_flag = false;
+                HomingIdle();
+                homingState = MOVE_UP;
+            } else {
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+            }
+            break;
+
+        case MOVE_UP:
             digitalWrite(motor1_pin, LOW);
             digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, M1_speed);
-            analogWrite(enable2_pin, M2_speed); 
-            delay(1000);
-            a = 1;
-        }
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
+            analogWrite(enable1_pin, homing_M1_Speed);
+            analogWrite(enable2_pin, homing_M2_Speed);
+            setTarget(0.0f, 5.0f, 50.0f);
+            homingState = HOMING_COMPLETE;
+            break;
 
+        case HOMING_COMPLETE:
+            update();
+
+            if (isCompleted()) {
+                Serial.println("=== HOMING COMPLETE ===");
+                HomingIdle();
+                absoluteX = 0.0f;
+                absoluteY = 0.0f;
+                encoder.resetCounts();
+                homingComplete = true;
+            }
+            break;
     }
-    
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    // implement logic to move to the right
-    digitalWrite(motor1_pin, HIGH);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    // while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
-    while(switchState != MotionController::sB){
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-
-    }
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-    
-    digitalWrite(motor1_pin, LOW);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    absoluteX = 0.0f;
-    absoluteY = 0.0f;
-    encoder.resetCounts();
 }
+
+bool MotionController::isHomingComplete() const {
+    return homingComplete;
+}
+
+void MotionController::StartHoming() {
+    homingState = MOVE_TO_LEFT;
+    homingComplete = false;
+    sT_flag = false;
+    sB_flag = false;
+    sL_flag = false;
+    sR_flag = false;
+}
+
