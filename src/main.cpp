@@ -115,21 +115,26 @@ void loop(){
 
 void BottomISR(){
     last_pressed = MotionController::sB;
+    if (fsm.getState() != FSM::HOMING) {
+        fsm.setState(FSM::FAULT);
+    }
 }
 
 ISR(PCINT0_vect) { // Top Limit Switch
-   last_pressed = MotionController::sT;
+    last_pressed = MotionController::sT;
+    fsm.setState(FSM::FAULT);
 }
 
 ISR(PCINT2_vect) { // Right Limit Switch
     last_pressed = MotionController::sR;
+    fsm.setState(FSM::FAULT);
 }
 
 void LeftISR(){
     last_pressed = MotionController::sL;
-    // Serial.print("last_pressed: ");
-    // Serial.println("Left switch pressed");
-    // Idle();
+    if (fsm.getState() != FSM::HOMING) {
+        fsm.setState(FSM::FAULT);
+    }
 }
 
 void ENCODER1AISR() {
