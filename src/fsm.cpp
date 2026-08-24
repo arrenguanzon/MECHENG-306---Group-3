@@ -1,4 +1,5 @@
 #include "fsm.h"
+#include "homing.h"
 
 FSM::FSM(MotionController& controller, volatile MotionController::SwitchState& switchState) : motionController(controller), switchState(switchState)
 {
@@ -16,9 +17,18 @@ void FSM::processCommand(const GCode& gcode)
         case IDLE:
             if (gcode.getCommand() == GCode::G28) {
                 switchState = MotionController::START;
+                Homing::getInstance()->startHoming();
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
+                Serial.print("X target: ");
+                Serial.println(gcode.getXTarget());
+
+                Serial.print("Y target: ");
+                Serial.println(gcode.getYTarget());
+
+                Serial.print("Speed target: ");
+                Serial.println(gcode.getSpeedTarget());
                 motionController.setTarget(
                     gcode.getXTarget(),
                     gcode.getYTarget(),
@@ -29,7 +39,7 @@ void FSM::processCommand(const GCode& gcode)
             break;
 
         case HOMING:
-            // We'll implement this later
+            // Homing is advanced from update(), which runs every loop.
             break;
 
         case MOVING:
@@ -39,6 +49,7 @@ void FSM::processCommand(const GCode& gcode)
 
         case FAULT:
             if (gcode.getCommand() == GCode::M999){
+                switchState = MotionController::START;
                 setState(IDLE);
             }
             break;
@@ -54,14 +65,26 @@ void FSM::update()
             break;
 
         case HOMING:
-             motionController.Homing(switchState);
-            // Homing has finished once Homing() returns
-            setState(IDLE);
+            Homing::getInstance()->homingFunction(
+                motionController,
+                switchState
+            );
+            if (Homing::getInstance()->homingComplete) {
+                motionController.resetPosition();
+                setState(IDLE);
+                Serial.println("Homing Complete");
+                Serial.println("");
+            }
 
             break;
 
         case MOVING:
-            motionController.update();
+            motionController.update(switchState);
+
+              if (motionController.Fault(switchState)) {
+                state = FAULT;
+                 Serial.println("Fault state, to exit fault state enter M999");
+            }
             if (motionController.isCompleted()){
                 setState(IDLE);
             }

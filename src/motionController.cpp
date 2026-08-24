@@ -6,10 +6,6 @@
 #define enable2_pin 5
 #define motor2_pin 4
 
-// Homing base speeds
-int M2_speed = 100;
-int M1_speed = M2_speed * 1.3;
-
 // Maximum and minimum speed limits for motors
 int MAX_SPEED = 100; // Change to actual value
 
@@ -181,63 +177,5 @@ void MotionController::Idle() {
 }
 
 void MotionController::Homing(const volatile SwitchState& switchState){
-    int a = 0;
-    while(switchState != MotionController::sL){
-        if(switchState == MotionController::sB && a == 0){
-            digitalWrite(motor1_pin, LOW);
-            digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, M1_speed);
-            analogWrite(enable2_pin, M2_speed); 
-            delay(1000);
-            a = 1;
-        }
-        digitalWrite(motor1_pin, LOW);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-
-    }
-    
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    // implement logic to move to the right
-    digitalWrite(motor1_pin, HIGH);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    // while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
-    while(switchState != MotionController::sB){
-        digitalWrite(motor1_pin, HIGH);
-        digitalWrite(motor2_pin, LOW);
-        analogWrite(enable1_pin, M1_speed);
-        analogWrite(enable2_pin, M2_speed);
-
-    }
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-    
-    digitalWrite(motor1_pin, LOW);
-    digitalWrite(motor2_pin, HIGH);
-    analogWrite(enable1_pin, M1_speed);
-    analogWrite(enable2_pin, M2_speed);
-    delay(500);
-    
-    analogWrite(enable1_pin, 0);
-    analogWrite(enable2_pin, 0);
-    delay(500);
-
-    absoluteX = 0.0f;
-    absoluteY = 0.0f;
-    encoder.resetCounts();
+   // Integrate Homing here
 }
