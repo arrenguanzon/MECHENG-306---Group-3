@@ -206,11 +206,9 @@ void MotionController::HomingFunction() {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
             //if (last_pressed == sB) {
-                sB_flag = false;
                 setTarget(0.0f, 5.0f, 50.0f);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (last_pressed == sT) {
-                sT_flag = false;
                 digitalWrite(motor1_pin, HIGH);
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, homing_M1_Speed);
@@ -219,7 +217,6 @@ void MotionController::HomingFunction() {
                 homingState = TOP_EDGE_CASE_WAIT;
             }else if (last_pressed == sL) {
             //} else if (last_pressed == sL) {
-                sL_flag = false;
                 HomingIdle();
                 homingState = MOVE_RIGHT;
             } else {
@@ -264,7 +261,6 @@ void MotionController::HomingFunction() {
         case MOVE_TO_BOTTOM:
             if (last_pressed == sB) {
             //if (last_pressed == sB) {
-                sB_flag = false;
                 HomingIdle();
                 homingState = MOVE_UP;
             } else {
@@ -306,9 +302,5 @@ bool MotionController::isHomingComplete() const {
 void MotionController::StartHoming() {
     homingState = MOVE_TO_LEFT;
     homingComplete = false;
-    sT_flag = false;
-    sB_flag = false;
-    sL_flag = false;
-    sR_flag = false;
 }
 

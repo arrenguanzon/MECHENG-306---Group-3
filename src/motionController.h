@@ -41,10 +41,6 @@ class MotionController {
             HOMING_COMPLETE
         };
         HomingState homingState = MOVE_TO_LEFT;
-        volatile bool sT_flag = false;
-        volatile bool sB_flag = false;
-        volatile bool sL_flag = false;
-        volatile bool sR_flag = false;
         int homing_M2_Speed = 200;
         int homing_M1_Speed = 200;
         volatile bool homingComplete = false;
