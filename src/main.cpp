@@ -3,7 +3,6 @@
 #include "gcode.h"
 #include "fsm.h"
 #include "motionController.h"
-#include "homing.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -18,32 +17,35 @@
 
 #define ENCODER1_A 18
 #define ENCODER1_B 19
-#define ENCODER2_A 20 //left encoders just fixed in the software and is currenly working
-#define ENCODER2_B 21 //left encoders just fixed in the software and is currenly working
-
-#define DEBOUNCE_MS 25
+#define ENCODER2_A 20
+#define ENCODER2_B 21
 
 
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
 
+// Absolution position tracker and Initialising Motion Controller
+float absoluteX = 0.0f;
+float absoluteY = 0.0f;
+
 Encoder encoder;
-
-MotionController motionController(encoder);
-
+MotionController motionController(encoder, absoluteX, absoluteY);
 
 String user_input = "";
 FSM fsm(motionController, last_pressed);
 
 //function prototypes
+void TopISR();
 void BottomISR();
 void LeftISR();
-void TopISR();
 void RightISR();
+void Homing();
 void ENCODER1AISR();
 void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
+
+// encoder encoderObject;
 
 
 void setup()
@@ -53,6 +55,7 @@ void setup()
     pinMode(motor2_pin, OUTPUT);
 
     Serial.begin(9600);
+    
     // Set up limit switch pins
     pinMode(switch_top, INPUT_PULLUP);
     pinMode(switch_bottom, INPUT_PULLUP);
@@ -80,7 +83,6 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
-
 
 }
 
@@ -112,61 +114,33 @@ void loop(){
     fsm.update();
 }
 
-//Limit Switch ISR's implement limit switch when not in homing
-
-void BottomISR() {
-    //Serial.println("BOTTOM flag set");
-    unsigned long now = millis();
+void BottomISR(){
     last_pressed = MotionController::sB;
-    if (now - Homing::getInstance()->last_sB_time >= DEBOUNCE_MS) {
-        Homing::getInstance()->sB_flag = true;
-        Homing::getInstance()->last_sB_time = now;
-
-    }
 }
 
-ISR(PCINT0_vect) {
-   // Serial.println("TOP flag set");
-    unsigned long now = millis();
-    last_pressed = MotionController::sT;
-    if (digitalRead(switch_top) == LOW && (now - Homing::getInstance()->last_sT_time >= DEBOUNCE_MS)) {
-        Homing::getInstance()->sT_flag = true;
-        Homing::getInstance()->last_sT_time = now;
-
-    }
+ISR(PCINT0_vect) { // Top Limit Switch
+   last_pressed = MotionController::sT;
 }
 
-ISR(PCINT2_vect) {
-   //Serial.println("RIGHT flag set");
-    unsigned long now = millis();
+ISR(PCINT2_vect) { // Right Limit Switch
     last_pressed = MotionController::sR;
-    if ((digitalRead(switch_right) == LOW && (now - Homing::getInstance()->last_sR_time >= DEBOUNCE_MS)) ) { {
-        Homing::getInstance()->sR_flag = true;
-        Homing::getInstance()->last_sR_time = now;
-    }
-}
 }
 
-void LeftISR() {
-    //Serial.println("LEFT flag set");
-    unsigned long now = millis();
+void LeftISR(){
     last_pressed = MotionController::sL;
-    if (now - Homing::getInstance()->last_sL_time >= DEBOUNCE_MS) {
-        Homing::getInstance()->sL_flag = true;
-        Homing::getInstance()->last_sL_time = now;
-    }
+    // Serial.print("last_pressed: ");
+    // Serial.println("Left switch pressed");
+    // Idle();
 }
-
-// encoder ISRs
 
 void ENCODER1AISR() {
     bool A = digitalRead(ENCODER1_A);
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -175,9 +149,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 

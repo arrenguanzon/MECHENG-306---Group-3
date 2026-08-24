@@ -78,7 +78,7 @@ void GCode::tokeniseInput(const String &rc) {
                     if (!parseValue(token)) {
                         valid = false;
                     }
-                }  
+                }
             }
 
             // If this character is a new one, don't skip it --> it normally skips spaces this is here so it dosen't skip commands.
@@ -99,7 +99,6 @@ void GCode::tokeniseInput(const String &rc) {
             }
         }
     }
-
     // Validity checks for commands
     if (!valid) {
         valid_command = false;
@@ -119,15 +118,6 @@ void GCode::tokeniseInput(const String &rc) {
     // If the command is invalid, print an error message
     if (!valid_command) {
         printErrorCommand();
-    }
-
-    //inheriting speed --> NEED TO TEST!!!!
-    if(command == G1 && valid) {
-        if(has_speed) {
-            previous_speed = speed_target;
-        }else {
-            speed_target = previous_speed;
-        }
     }
 }
 

@@ -14,7 +14,6 @@ class FSM {
             FAULT
         };
 
-
     private:
         State state;
         MotionController& motionController; 

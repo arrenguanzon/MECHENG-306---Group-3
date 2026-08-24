@@ -13,8 +13,7 @@ class GCode {
         Command command = UNDEFINED;
         float x_target = 0.0;
         float y_target = 0.0;
-        float speed_target = 75.0; // Default 
-        int previous_speed = 75.0;
+        float speed_target = 100.0;
         // Validity Flags
         bool valid_command = false;
         bool has_x = false;
@@ -35,5 +34,8 @@ class GCode {
 
 
 };
+
+
+
 
 #endif //GCODE_HPP
