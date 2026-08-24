@@ -90,6 +90,16 @@ FSM::State FSM::getState() const{
 
 void FSM::setState(State newState) {
     state = newState;
+    // Alerts the user of the state change
+    if (state != newState) {
+        Serial.print("FSM State: ");
+        Serial.print(getStateName());
+        Serial.print(" -> ");
+
+        state = newState;
+
+        Serial.println(getStateName());
+    }
 }
 
 const char* FSM::getStateName() const {
