@@ -20,11 +20,18 @@
 #define ENCODER2_A 20
 #define ENCODER2_B 21
 
+// Switch debouncing variables
+#define DEBOUNCE_MS 25
+unsigned long last_sB_time = 0;
+unsigned long last_sT_time = 0;
+unsigned long last_sL_time = 0;
+unsigned long last_sR_time = 0;
+
 
 volatile MotionController::SwitchState last_pressed =
     MotionController::START;
 
-// Absolution position tracker and Initialising Motion Controller
+// Absolution position tracker, Initialising Motion Controller, Encoder and FSM
 float absoluteX = 0.0f;
 float absoluteY = 0.0f;
 
@@ -113,30 +120,44 @@ void loop(){
     fsm.update();
 }
 
+// Limit switch interrupt service routines
 void BottomISR(){
-    last_pressed = MotionController::sB;
-    if (fsm.getState() != FSM::HOMING) {
-        fsm.setState(FSM::FAULT);
-    }
+    unsigned long now = millis();
+    if((digitalRead(switch_bottom) == LOW && (now - last_sB_time >= DEBOUNCE_MS)) ) {
+        last_pressed = MotionController::sB;
+        if (fsm.getState() != FSM::HOMING) {
+            fsm.setState(FSM::FAULT);
+        }
+    }   
 }
 
 ISR(PCINT0_vect) { // Top Limit Switch
-    last_pressed = MotionController::sT;
-    fsm.setState(FSM::FAULT);
-}
-
-ISR(PCINT2_vect) { // Right Limit Switch
-    last_pressed = MotionController::sR;
-    fsm.setState(FSM::FAULT);
-}
-
-void LeftISR(){
-    last_pressed = MotionController::sL;
-    if (fsm.getState() != FSM::HOMING) {
+    unsigned long now = millis();
+    if ((digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) ) { 
+        last_pressed = MotionController::sT;
         fsm.setState(FSM::FAULT);
     }
 }
 
+ISR(PCINT2_vect) { // Right Limit Switch
+    unsigned long now = millis();
+    if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { 
+        last_pressed = MotionController::sR;
+        fsm.setState(FSM::FAULT);
+    }
+}
+
+void LeftISR(){
+    unsigned long now = millis();
+    if ((digitalRead(switch_left) == LOW && (now - last_sL_time >= DEBOUNCE_MS)) ) { 
+        last_pressed = MotionController::sL;
+        if (fsm.getState() != FSM::HOMING) {
+            fsm.setState(FSM::FAULT);
+        }
+    }
+}
+
+// Encoder interrupt service routines
 void ENCODER1AISR() {
     bool A = digitalRead(ENCODER1_A);
     bool B = digitalRead(ENCODER1_B);
