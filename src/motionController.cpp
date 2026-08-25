@@ -10,7 +10,7 @@
 int homing_M2_Speed = 100;
 int homing_M1_Speed = 130;
 #define MIN_SPEED 70
-#define MAX_SPEED 100
+// #define MAX_SPEED 100
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
@@ -90,8 +90,8 @@ void MotionController::update() { // This controls the motors
         float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
-        if (speedMotor1 > MAX_SPEED) {
-            speedMotor1 = MAX_SPEED;
+        if (speedMotor1 > speed) {
+            speedMotor1 = speed;
             integralMotor1 = prevIntegralMotor1; // Clamp: DON'T update integral!
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
@@ -122,8 +122,8 @@ void MotionController::update() { // This controls the motors
         float speedMotor2 = abs(Kp * motor2Error + integralMotor2);
 
         // Integral clamping to prevent windup
-        if (speedMotor2 > MAX_SPEED) {
-            speedMotor2 = MAX_SPEED;
+        if (speedMotor2 > speed) {
+            speedMotor2 = speed;
             integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
