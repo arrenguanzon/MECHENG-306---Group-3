@@ -13,19 +13,25 @@ class GCode {
         Command command = UNDEFINED;
         float x_target = 0.0;
         float y_target = 0.0;
-        float speed_target = 150.0; // Default 
+        float speed_target = 150.0; // Default
         int previous_speed = 150.0;
         // Validity Flags
         bool valid_command = false;
         bool has_x = false;
         bool has_y = false;
         bool has_speed = false;
+        // Absolute position references
+        float& absoluteX;
+        float& absoluteY;
     public:
-        GCode(String &rc);
-        // Parser Functions
+        GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
+            tokeniseInput(rc);
+        }
+        // Parser and Helper Functions
         void tokeniseInput(const String &rc);
         bool parseValue(const String &token); // Function also checks if input is valid, returns true if valid, false if not
         void printErrorCommand() const; // Reports to user if command is valid or not
+        bool checkBounds(); // Checks if the target position is within the gantry bounds
         // Getters
         Command getCommand() const;
         float getXTarget() const;

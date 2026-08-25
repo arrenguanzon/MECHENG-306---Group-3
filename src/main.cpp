@@ -102,7 +102,7 @@ void loop(){
             if (user_input.length() > 0)
             {
                 Serial.println();
-                GCode gcode(user_input);
+                GCode gcode(user_input, absoluteX, absoluteY);
 
                 fsm.processCommand(gcode);
 

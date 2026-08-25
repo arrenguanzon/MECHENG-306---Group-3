@@ -60,6 +60,7 @@ class MotionController {
         void update();
         bool isCompleted() const;
         void calculateMotorTargets();
+        void updateAbsolutePosition();
 
         // State motion controls
         void Idle();

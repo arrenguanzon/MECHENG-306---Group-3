@@ -1,7 +1,9 @@
 #include "gcode.h"
 
+#define GANTRY_WIDTH 250
+#define GANTRY_HEIGHT 210
 
-GCode::GCode(String &rc){
+GCode::GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
     raw_command = rc;
 
     command = UNDEFINED;
@@ -106,6 +108,10 @@ void GCode::tokeniseInput(const String &rc) {
     } else if (command == G1) {
         // G1 must have at least one of X or Y, and can optionally have F
         valid_command = has_x || has_y;
+        // If the command itself is valid, check the resulting position
+        if (valid_command) {
+            valid_command = checkBounds();
+        }
     } else if (command == G28) {
         // G28 must not have X, Y or F
         valid_command = !has_x && !has_y && !has_speed;
@@ -122,7 +128,7 @@ void GCode::tokeniseInput(const String &rc) {
     }
 
     //inheriting speed --> NEED TO TEST!!!!
-    if(command == G1 && valid) {
+    if(command == G1 && valid_command) {
         if(has_speed) {
             previous_speed = speed_target;
         }else {
@@ -225,6 +231,42 @@ void GCode::printErrorCommand() const {
     if (!valid_command) {
         Serial.println("Invalid command: " + raw_command);
     }
+}
+
+bool GCode::checkBounds() {
+    float newX = absoluteX;
+    float newY = absoluteY;
+
+    // G1 movements are RELATIVE
+    if (has_x) {
+        newX += x_target;
+    }
+
+    if (has_y) {
+        newY += y_target;
+    }
+
+    if (newX < 0.0f || newX > GANTRY_WIDTH) {
+        Serial.println("Error: X movement exceeds gantry limits.");
+        Serial.print("Requested X position: ");
+        Serial.println(newX);
+        Serial.print("Allowed range: 0 - ");
+        Serial.println(GANTRY_WIDTH);
+
+        return false;
+    }
+
+    if (newY < 0.0f || newY > GANTRY_HEIGHT) {
+        Serial.println("Error: Y movement exceeds gantry limits.");
+        Serial.print("Requested Y position: ");
+        Serial.println(newY);
+        Serial.print("Allowed range: 0 - ");
+        Serial.println(GANTRY_HEIGHT);
+
+        return false;
+    }
+
+    return true;
 }
 
 

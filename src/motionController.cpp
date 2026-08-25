@@ -138,7 +138,16 @@ void MotionController::update() { // This controls the motors
     }
 
     if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
+        updateAbsolutePosition();
+
+        Serial.println("=== Movement Complete ===");
+        Serial.print("Absolute X: ");
+        Serial.println(absoluteX);
+        Serial.print("Absolute Y: ");
+        Serial.println(absoluteY);
+
         moving_completed = true;
+        
     }
 
     Serial.print("M1 error: ");
@@ -176,6 +185,17 @@ void MotionController::calculateMotorTargets() {
     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
 
+}
+
+void MotionController::updateAbsolutePosition() {
+    absoluteX += targetX;
+    absoluteY += targetY;
+
+    Serial.println("=== Absolute Position Updated ===");
+    Serial.print("Absolute X: ");
+    Serial.println(absoluteX);
+    Serial.print("Absolute Y: ");
+    Serial.println(absoluteY);
 }
 
 
