@@ -45,6 +45,15 @@ class MotionController {
         int homing_M1_Speed = 200;
         volatile bool homingComplete = false;
 
+        // PI control variables
+        // Track previous integrals
+        float prevIntegralMotor1;
+        float prevIntegralMotor2;
+
+        // Integral terms for PID control
+        float integralMotor1;
+        float integralMotor2;
+
         
     public:
 
