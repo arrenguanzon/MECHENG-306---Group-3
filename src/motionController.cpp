@@ -7,16 +7,16 @@
 #define motor2_pin 4
 
 // Homing base speeds
-int M2_speed = 100;
-int M1_speed = M2_speed * 1.3;
+int homing_M2_Speed = 100;
+int homing_M1_Speed = 150;
 #define MIN_SPEED 70
 #define MAX_SPEED 100
 #define POSITION_TOLERANCE 800 // Tolerance in encoder counts for position control
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.05f; // tune
-float Ki = 0.00f; // tune
+float Kp = 0.1f; // tune
+float Ki = 0.05f; // tune
 int positionTolerance = 800; //adjust based on testing
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, const volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {

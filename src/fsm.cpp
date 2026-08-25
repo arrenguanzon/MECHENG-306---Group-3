@@ -3,6 +3,7 @@
 FSM::FSM(MotionController& controller, volatile MotionController::SwitchState& switchState) : motionController(controller), switchState(switchState)
 {
     state = IDLE;
+    previousState = IDLE;
 }
 
 void FSM::processCommand(const GCode& gcode)
@@ -57,6 +58,15 @@ void FSM::processCommand(const GCode& gcode)
 
 void FSM::update()
 {
+    if (state != previousState) {
+        Serial.print("FSM State: ");
+        Serial.print(getStateName(previousState));
+        Serial.print(" -> ");
+        Serial.println(getStateName(state));
+
+        previousState = state;
+    }
+
     switch (state)
     {
         case IDLE:
@@ -90,19 +100,14 @@ FSM::State FSM::getState() const{
 
 void FSM::setState(State newState) {
     // Alerts the user of the state change
-    if (state != newState) {
-        Serial.print("FSM State: ");
-        Serial.print(getStateName());
-        Serial.print(" -> ");
-
-        state = newState;
-
-        Serial.println(getStateName());
-    }
     state = newState;
 }
 
 const char* FSM::getStateName() const {
+    return getStateName(state);
+}
+
+const char* FSM::getStateName(State state) const {
     switch (state) {
         case IDLE:
             return "IDLE";

@@ -41,8 +41,6 @@ class MotionController {
             HOMING_COMPLETE
         };
         HomingState homingState = MOVE_TO_LEFT;
-        int homing_M2_Speed = 200;
-        int homing_M1_Speed = 200;
         volatile bool homingComplete = false;
 
         // PI control variables
