@@ -14,7 +14,7 @@ class GCode {
         float x_target = 0.0;
         float y_target = 0.0;
         float speed_target = 150.0; // Default
-        int previous_speed = 150.0;
+        float previous_speed = 150.0;
         // Validity Flags
         bool valid_command = false;
         bool has_x = false;
@@ -24,9 +24,7 @@ class GCode {
         float& absoluteX;
         float& absoluteY;
     public:
-        GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
-            tokeniseInput(rc);
-        }
+        GCode(String &rc, float& abs_x, float& abs_y);
         // Parser and Helper Functions
         void tokeniseInput(const String &rc);
         bool parseValue(const String &token); // Function also checks if input is valid, returns true if valid, false if not

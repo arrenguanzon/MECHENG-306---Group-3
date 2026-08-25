@@ -21,7 +21,7 @@ GCode::GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absolut
 }
 
 void GCode::tokeniseInput(const String &rc) {
-    int start = 0;
+    unsigned int start = 0;
     bool valid = true;
 
     //split rc after ;
@@ -36,7 +36,7 @@ void GCode::tokeniseInput(const String &rc) {
     
      rc_filtered.trim();
 
-    for (int i = 0; i <= rc_filtered.length(); i++) {
+    for (unsigned int i = 0; i <= rc_filtered.length(); i++) {
 
         if (i == rc_filtered.length() ||
             rc_filtered.charAt(i) == ' ' ||
@@ -159,7 +159,7 @@ bool GCode::parseValue(const String &token) {
     bool digitFound = false;
     bool negative = false;
 
-    int start = 1;
+    unsigned int start = 1;
 
     // Allow negative numbers
     if (token.charAt(start) == '-') {
@@ -175,7 +175,7 @@ bool GCode::parseValue(const String &token) {
     float value = 0;
     float decimalPlace = 0.1;
 
-    for (int i = start; i < token.length(); i++) {
+    for (unsigned int i = start; i < token.length(); i++) {
         char c = token.charAt(i);
 
         if (c >= '0' && c <= '9') {
