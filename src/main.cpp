@@ -138,9 +138,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 
@@ -149,9 +149,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 

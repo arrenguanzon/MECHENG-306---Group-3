@@ -10,11 +10,16 @@ class MotionController {
 
         float targetX;
         float targetY;
-        float speed;
+        float speed; // target speed from g-code parsing  
 
         // Target Motor Encoder Counts
         long targetMotor1; 
         long targetMotor2;
+
+        // Trapezoidal velocity profile parameters
+        unsigned long moveStartTime; // tracks when motion started
+        float startSpeed;            // minimum starting speed
+        float accelRate;             // acceleration rate in PWM units per millisecond
 
         // Reference to absolute position variables
         float& absoluteX;
