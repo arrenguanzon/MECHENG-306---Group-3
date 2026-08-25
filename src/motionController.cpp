@@ -9,7 +9,7 @@
 // Homing base speeds
 int homing_M2_Speed = 100;
 int homing_M1_Speed = 130;
-#define MIN_SPEED 70
+#define MIN_SPEED 75
 // #define MAX_SPEED 100
 
 // PI Variables
@@ -18,7 +18,7 @@ float Kp = 0.1f; // tune
 float Ki = 0.05f; // tune
 int positionTolerance = 100; //adjust based on testing
 
-MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, const volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
+MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
     targetY = 0.0f;
     speed = 0.0f;
@@ -212,21 +212,26 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
+    Serial.print("Homing state: ");
+    Serial.print(homingState);
+    Serial.print(" | last_pressed: ");
+    Serial.println(last_pressed);
+    // Homing state machine
     switch (homingState) {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
-            //if (last_pressed == sB) {
-                setTarget(0.0f, 5.0f, 50.0f);
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                setTarget(0.0f, 5.0f, 75.0f);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             } else if (last_pressed == sT) {
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
                 digitalWrite(motor1_pin, HIGH);
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, homing_M1_Speed);
                 analogWrite(enable2_pin, homing_M2_Speed);
-                setTarget(0.0f, -5.0f, 50.0f);
+                setTarget(0.0f, -5.0f, 75.0f);
                 homingState = TOP_EDGE_CASE_WAIT;
             }else if (last_pressed == sL) {
-            //} else if (last_pressed == sL) {
                 HomingIdle();
                 homingState = MOVE_RIGHT;
             } else {
@@ -252,11 +257,8 @@ void MotionController::HomingFunction() {
             break;
 
         case MOVE_RIGHT:
-            digitalWrite(motor1_pin, HIGH);
-            digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, homing_M1_Speed);
-            analogWrite(enable2_pin, homing_M2_Speed);
-            setTarget(5.0f, 0.0f, 50.0f);
+            setTarget(5.0f, 0.0f, 75.0f);
+            last_pressed = START; // Reset last_pressed to avoid repeated triggering
             homingState = WAIT_AFTER_RIGHT;
             break;
 
@@ -264,13 +266,14 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
                 homingState = MOVE_TO_BOTTOM;
             }
             break;
 
         case MOVE_TO_BOTTOM:
             if (last_pressed == sB) {
-            //if (last_pressed == sB) {
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
                 HomingIdle();
                 homingState = MOVE_UP;
             } else {
@@ -286,7 +289,8 @@ void MotionController::HomingFunction() {
             digitalWrite(motor2_pin, HIGH);
             analogWrite(enable1_pin, homing_M1_Speed);
             analogWrite(enable2_pin, homing_M2_Speed);
-            setTarget(0.0f, 5.0f, 50.0f);
+            last_pressed = START; // Reset last_pressed to avoid repeated triggering
+            setTarget(0.0f, 5.0f, 75.0f);
             homingState = HOMING_COMPLETE;
             break;
 
@@ -312,5 +316,11 @@ bool MotionController::isHomingComplete() const {
 void MotionController::StartHoming() {
     homingState = MOVE_TO_LEFT;
     homingComplete = false;
+    moving_completed = true;
+
+    integralMotor1 = 0;
+    integralMotor2 = 0;
+    prevIntegralMotor1 = 0;
+    prevIntegralMotor2 = 0;
 }
 

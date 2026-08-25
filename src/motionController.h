@@ -22,7 +22,7 @@ class MotionController {
         // Reference to absolute position variables
         float& absoluteX;
         float& absoluteY;
-        const volatile SwitchState& last_pressed;
+        volatile SwitchState& last_pressed;
 
         long motor1Error;
         long motor2Error;
@@ -55,7 +55,7 @@ class MotionController {
         
     public:
 
-        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, const volatile SwitchState& last_pressed);
+        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed);
         void setTarget(float x, float y, float speed);
         void update();
         bool isCompleted() const;

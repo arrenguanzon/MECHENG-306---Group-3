@@ -12,19 +12,7 @@ Encoder::Encoder() {
 }
 
 long Encoder::convertToCounts(float distanceInMM) {
-    // return (long)round(distanceInMM / MM_PER_COUNT);
     float counts = distanceInMM / MM_PER_COUNT;
-
-    // Debugging Prints
-    // Serial.print("Distance: ");
-    // Serial.println(distanceInMM);
-
-    // Serial.print("MM per count: ");
-    // Serial.println(MM_PER_COUNT, 8);
-
-    // Serial.print("Calculated counts: ");
-    // Serial.println(counts);
-
     return (int)round(counts);
 }
 
