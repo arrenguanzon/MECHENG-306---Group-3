@@ -52,7 +52,11 @@ void MotionController::setTarget(float x, float y, float speed) {
     Serial.print("targetY: ");
     Serial.println(targetY);
     Serial.print("speed: ");
-    Serial.println(this->speed);
+    if(this->speed < 75.0f) {
+        Serial.println("75.00");
+    } else {
+        Serial.println(this->speed);
+    }
 
     calculateMotorTargets();
 

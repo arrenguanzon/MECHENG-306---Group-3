@@ -28,7 +28,12 @@ void FSM::processCommand(const GCode& gcode)
                 Serial.println(gcode.getYTarget());
 
                 Serial.print("Speed target: ");
-                Serial.println(gcode.getSpeedTarget());
+                
+                if (gcode.getSpeedTarget() < 75.0f) {
+                    Serial.println("75.00");
+                } else {
+                    Serial.println(gcode.getSpeedTarget());
+                }
                 motionController.setTarget(
                     gcode.getXTarget(),
                     gcode.getYTarget(),
