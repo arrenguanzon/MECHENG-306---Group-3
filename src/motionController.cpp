@@ -19,9 +19,9 @@ int MAX_SPEED = 200; // tuned
 float ACCELERATION_RATE = 0.04f; // PWM units per millisecond (e.g., 0.04 PWM/ms = 0.75s to go from 70 PWM to 100 PWM)
 
 // Controller gains
-float Kp = 0.00f; // TUNE FIRST: eliminate tracking error
+float Kp = 0.05f; // TUNE FIRST: eliminate tracking error
 float Ki = 0.00f; // TUNE SECOND: eliminate steady state error
-float Kv = 0.7f; // does majority of the heavy lifting for motor power
+float Kv = 0.8f; // does majority of the heavy lifting for motor power
 
 // Position tolerance (acceptable error in encoder counts)
 int positionTolerance = 800; // TUNE: can be much lower
@@ -92,7 +92,7 @@ void MotionController::update() { // This controls the motors
     
     // Deceleration ramp
     long maxError = max(abs(motor1Error), abs(motor2Error));
-    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError); // deceleration speed = sqrt(2 * acceleration * error distance)
+    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError * (15.0f * PI / 8256.0f)); // deceleration speed = sqrt(2 * acceleration * error distance)
 
     // Trapezoidal Constraint (Take lowest speed of acceleration, cruise, and deceleration)
     float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed); // once cruise speed is reached, acceleration speed increases so CRUISE SPEED will be the smallest value
@@ -345,4 +345,3 @@ void MotionController::StartHoming() {
     prevIntegralMotor1 = 0;
     prevIntegralMotor2 = 0;
 }
-
