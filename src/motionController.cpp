@@ -242,18 +242,11 @@ void MotionController::HomingFunction() {
     switch (homingState) {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
-                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                last_pressed = START;
                 setTarget(0.0f, 5.0f, 75.0f);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
-            } else if (last_pressed == sT) {
-                last_pressed = START; // Reset last_pressed to avoid repeated triggering
-                digitalWrite(motor1_pin, HIGH);
-                digitalWrite(motor2_pin, LOW);
-                analogWrite(enable1_pin, homing_M1_Speed);
-                analogWrite(enable2_pin, homing_M2_Speed);
-                setTarget(0.0f, -5.0f, 75.0f);
-                homingState = TOP_EDGE_CASE_WAIT;
             }else if (last_pressed == sL) {
+                last_pressed = START;
                 HomingIdle();
                 homingState = MOVE_RIGHT;
             } else {
@@ -264,38 +257,61 @@ void MotionController::HomingFunction() {
             }
             break;
 
+
         case BOTTOM_EDGE_CASE_WAIT:
             update();
             if (isCompleted()) {
                 homingState = MOVE_TO_LEFT;
             }
             break;
-        
-        case TOP_EDGE_CASE_WAIT:
-            update();
-            if (isCompleted()) {
-                homingState = MOVE_TO_LEFT;
-            }
-            break;
+
 
         case MOVE_RIGHT:
-            setTarget(5.0f, 0.0f, 75.0f);
-            last_pressed = START; // Reset last_pressed to avoid repeated triggering
+            setTarget(10.0f, 0.0f, 250.0f);
             homingState = WAIT_AFTER_RIGHT;
             break;
+
 
         case WAIT_AFTER_RIGHT:
             update();
             if (isCompleted()) {
                 HomingIdle();
-                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                homingState = MOVE_TO_LEFT2;
+            }
+            break;
+
+
+        case MOVE_TO_LEFT2:
+            if (last_pressed == sL) {
+                last_pressed = START;
+                HomingIdle();
+                homingState = MOVE_RIGHT2;
+            } else {
+                digitalWrite(motor1_pin, LOW);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, 98);
+                analogWrite(enable2_pin, 75);
+            }
+            break;
+       
+        case MOVE_RIGHT2:
+            setTarget(5.0f, 0.0f, 98.0f);
+            homingState = WAIT_AFTER_RIGHT2;
+            break;
+
+
+        case WAIT_AFTER_RIGHT2:
+            update();
+            if (isCompleted()) {
+                HomingIdle();
                 homingState = MOVE_TO_BOTTOM;
             }
             break;
 
+
         case MOVE_TO_BOTTOM:
             if (last_pressed == sB) {
-                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                last_pressed = START;
                 HomingIdle();
                 homingState = MOVE_UP;
             } else {
@@ -306,14 +322,44 @@ void MotionController::HomingFunction() {
             }
             break;
 
+
         case MOVE_UP:
-            digitalWrite(motor1_pin, LOW);
-            digitalWrite(motor2_pin, HIGH);
-            analogWrite(enable1_pin, homing_M1_Speed);
-            analogWrite(enable2_pin, homing_M2_Speed);
-            last_pressed = START; // Reset last_pressed to avoid repeated triggering
-            setTarget(0.0f, 5.0f, 75.0f);
-            homingState = HOMING_COMPLETE;
+            setTarget(0.0f, 10.0f, 250.0f);
+            homingState = WAIT_AFTER_UP;
+            break;
+       
+        case WAIT_AFTER_UP:
+            update();
+            if (isCompleted()) {
+                HomingIdle();
+                homingState = MOVE_TO_BOTTOM2;
+            }
+            break;
+       
+        case MOVE_TO_BOTTOM2:
+            if (last_pressed == sB) {
+                last_pressed = START;
+                HomingIdle();
+                homingState = MOVE_UP2;
+            } else {
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, 98);
+                analogWrite(enable2_pin, 75);
+            }
+            break;
+
+        case MOVE_UP2:
+            setTarget(0.0f, 5.0f, 98.0f);
+            homingState = WAIT_AFTER_UP2;
+            break;
+       
+        case WAIT_AFTER_UP2:
+            update();
+            if (isCompleted()) {
+                HomingIdle();
+                homingState = HOMING_COMPLETE;
+            }
             break;
 
         case HOMING_COMPLETE:
@@ -330,6 +376,7 @@ void MotionController::HomingFunction() {
             break;
     }
 }
+
 
 bool MotionController::isHomingComplete() const {
     return homingComplete;

@@ -43,7 +43,14 @@ class MotionController {
             WAIT_AFTER_RIGHT,
             MOVE_TO_BOTTOM,
             MOVE_UP,
-            HOMING_COMPLETE
+            HOMING_COMPLETE,
+            WAIT_AFTER_UP,
+            MOVE_TO_LEFT2,
+            MOVE_RIGHT2,
+            WAIT_AFTER_RIGHT2,
+            MOVE_TO_BOTTOM2,
+            MOVE_UP2,
+            WAIT_AFTER_UP2
         };
         HomingState homingState = MOVE_TO_LEFT;
         volatile bool homingComplete = false;

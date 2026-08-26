@@ -134,6 +134,10 @@ void GCode::tokeniseInput(const String &rc) {
         }else {
             speed_target = previous_speed;
         }
+        if (speed_target > 250.0f) {
+            speed_target = 250.0f;
+        }
+
     }
 }
 
@@ -221,7 +225,7 @@ bool GCode::parseValue(const String &token) {
         }
         speed_target = value;
         has_speed = true;
-    }
+    } 
 
     return true;
 }
