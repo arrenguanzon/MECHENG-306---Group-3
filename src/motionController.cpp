@@ -20,7 +20,7 @@ float Ki = 0.00f; // tune second: eliminate steady state error
 float Kv = 0.7f; // Kv = 0.7 + Kp = *value* should be enough to correct position errors
 
 // Position tolerance (acceptable error in encoder counts)
-int positionTolerance = 800; //adjust based on testing
+int positionTolerance = 800; // please decrease once tuning is consistent
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
     targetX = 0.0f;
@@ -68,15 +68,6 @@ void MotionController::update() {
         return;
     }
 
-    // Calculate ramped maximum PWM limit based on elapsed time
-    unsigned long elapsedTime = millis() - moveStartTime;
-    float currentRampedMaxSpeed = startSpeed + (accelRate * (float)elapsedTime);
-    
-    // Cruise velocity equal to input speed (from g-code parsing)
-    if (currentRampedMaxSpeed > speed) {
-        currentRampedMaxSpeed = speed;
-    }
-
     // Update current motor positions (these are relative to the position when motion was called; starts at 0 and increases to target)
     long currentMotor1 = encoder.getMotor1Count();
     long currentMotor2 = encoder.getMotor2Count();
@@ -103,7 +94,25 @@ void MotionController::update() {
     // Serial.println("  ");
     // ////////////////////////////////////////////////////////
 
-    // MOTOR 1
+    //// TRAPEZOIDAL VELOCITY PROFILE ////////////////
+    // Acceleration ramp
+    unsigned long elapsedTime = millis() - moveStartTime;
+    float accelerationSpeed = startSpeed + (accelRate * (float)elapsedTime);
+    
+    // Deceleration ramp
+    long maxError = max(abs(motor1Error), abs(motor2Error));
+    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError);
+
+    // Trapezoidal Constraint (Take lowest speed of acceleration, cruise, and deceleration)
+    float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed);
+    currentRampedMaxSpeed = min(currentRampedMaxSpeed, decelerationSpeed);
+
+    // Set minimum floor so motor doesn't stall before reaching tolerance window
+    if (currentRampedMaxSpeed < MIN_SPEED && maxError > positionTolerance) {
+        currentRampedMaxSpeed = MIN_SPEED;
+    }
+
+    //// MOTOR 1 /////////////////////////////////////
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
         analogWrite(enable1_pin, 0);
@@ -125,24 +134,18 @@ void MotionController::update() {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
 
-        ///////// gemini is not a fan of this block of code because it prevents smooth deceleration and causes jerk. tune ki instead.
-        // Ensure motor moves even if the error is small 
-        if (speedMotor1 < MIN_SPEED) {
-            speedMotor1 = MIN_SPEED;
-        }
-
         // ////////////////////////////////////////////////////////
         // Serial.println("MOTOR 1 SPEED [max of 100; should decrease the end]"); 
         // Serial.print("Motor 1 speed: ");
         // Serial.println(speedMotor1);
         // ////////////////////////////////////////////////////////
 
-        // MOTOR 1 CONTROL //
+        // MOTOR 1 CONTROL
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
         analogWrite(enable1_pin, speedMotor1);
     }
 
-    // MOTOR 2
+    //// MOTOR 2 /////////////////////////////////////
     if (abs(motor2Error) <= positionTolerance) {
         // Stop motor 2
         analogWrite(enable2_pin, 0);
@@ -165,11 +168,6 @@ void MotionController::update() {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
 
-        // Ensure motor moves even if the error is small 
-        if (speedMotor2 < MIN_SPEED) {
-            speedMotor2 = MIN_SPEED;
-        }
-
         // ////////////////////////////////////////////////////////
         // Serial.println("MOTOR 2 SPEED [max of 100; should decrease the end]"); 
         // Serial.print("Motor 2 speed: ");
@@ -177,7 +175,7 @@ void MotionController::update() {
         // Serial.println(" ");
         // ////////////////////////////////////////////////////////
 
-        // MOTOR 2 CONTROL //
+        // MOTOR 2 CONTROL
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
         analogWrite(enable2_pin, speedMotor2);
     }
