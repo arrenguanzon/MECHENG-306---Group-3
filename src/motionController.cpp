@@ -14,10 +14,10 @@ int MAX_SPEED = 100; // tune --> could be larger
 // Accelerattion rate for trapezoidal velocity profile
 float ACCELERATION_RATE = 0.04f; // PWM units per millisecond (e.g., 0.04 PWM/ms = 0.75s to go from 70 PWM to 100 PWM)
 
-// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.00f; // TUNE FIRST: eliminate error
-float Ki = 0.00f; // tune second: eliminate steady state error
-float Kv = 0.7f; // Kv = 0.7 + Kp = *value* should be enough to correct position errors
+// Controller gains
+float Kp = 0.00f; // TUNE FIRST: eliminate tracking error
+float Ki = 0.00f; // TUNE SECOND: eliminate steady state error
+float Kv = 0.7f; // does majority of the heavy lifting for motor power
 
 // Position tolerance (acceptable error in encoder counts)
 int positionTolerance = 800; // please decrease once tuning is consistent
@@ -95,19 +95,19 @@ void MotionController::update() {
     // ////////////////////////////////////////////////////////
 
     //// TRAPEZOIDAL VELOCITY PROFILE ////////////////
-    // Acceleration ramp
+    // Gradually increase motor velocity over time (acceleration ramp)
     unsigned long elapsedTime = millis() - moveStartTime;
-    float accelerationSpeed = startSpeed + (accelRate * (float)elapsedTime);
+    float accelerationSpeed = startSpeed + (accelRate * (float)elapsedTime); 
     
     // Deceleration ramp
     long maxError = max(abs(motor1Error), abs(motor2Error));
-    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError);
+    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError); // deceleration speed = sqrt(2 * acceleration * error distance)
 
     // Trapezoidal Constraint (Take lowest speed of acceleration, cruise, and deceleration)
-    float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed);
-    currentRampedMaxSpeed = min(currentRampedMaxSpeed, decelerationSpeed);
+    float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed); // once cruise speed is reached, acceleration speed increases so CRUISE SPEED will be the smallest value
+    currentRampedMaxSpeed = min(currentRampedMaxSpeed, decelerationSpeed); // as error decreases, DECELERATION SPEED will become smaller than cruise control
 
-    // Set minimum floor so motor doesn't stall before reaching tolerance window
+    // If the velocity profile motor speed is too low (and position tolerance isn't reached), use minimum speed
     if (currentRampedMaxSpeed < MIN_SPEED && maxError > positionTolerance) {
         currentRampedMaxSpeed = MIN_SPEED;
     }
