@@ -1,9 +1,6 @@
 #include "encoder.h"
 #include <Arduino.h> 
 
-#define gantry_width 100
-#define gantry_length 100
-
 #define MM_PER_COUNT (15.0f * PI / 8256.0f) // 1 count = 5.71 um
 
 Encoder::Encoder() {
@@ -13,7 +10,7 @@ Encoder::Encoder() {
 
 long Encoder::convertToCounts(float distanceInMM) {
     float counts = distanceInMM / MM_PER_COUNT;
-    return (int)round(counts);
+    return (long)round(counts);
 }
 
 long Encoder::getMotor1Count() {

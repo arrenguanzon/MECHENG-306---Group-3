@@ -122,7 +122,6 @@ void loop(){
 
 // Limit switch interrupt service routines
 void BottomISR(){
-    Serial.println("BOTTOM SWITCH");
     unsigned long now = millis();
     if((digitalRead(switch_bottom) == LOW && (now - last_sB_time >= DEBOUNCE_MS)) ) {
         last_sB_time = now;
@@ -134,7 +133,6 @@ void BottomISR(){
 }
 
 ISR(PCINT0_vect) { // Top Limit Switch
-    Serial.println("TOP SWITCH");
     unsigned long now = millis();
     if ((digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) ) { 
         last_sT_time = now;
@@ -144,7 +142,6 @@ ISR(PCINT0_vect) { // Top Limit Switch
 }
 
 ISR(PCINT2_vect) { // Right Limit Switch
-    Serial.println("RIGHT SWITCH");
     unsigned long now = millis();
     if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { 
         last_sR_time = now;
@@ -154,7 +151,6 @@ ISR(PCINT2_vect) { // Right Limit Switch
 }
 
 void LeftISR(){
-    Serial.println("LEFT SWITCH");
     unsigned long now = millis();
     if ((digitalRead(switch_left) == LOW && (now - last_sL_time >= DEBOUNCE_MS)) ) { 
         last_sL_time = now;

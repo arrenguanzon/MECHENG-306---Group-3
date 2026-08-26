@@ -4,8 +4,6 @@
 #include <Arduino.h>
 #include <math.h>
 
-// 1 count = 9.513mm
-
 class Encoder {
 
     private:
