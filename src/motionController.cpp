@@ -12,7 +12,7 @@ int homing_M2_Speed = 192;
 int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
-int MIN_SPEED = 75; // tuned
+int MIN_SPEED = 85; // tuned
 int MAX_SPEED = 200; // tuned
 
 // PI Variables
@@ -22,7 +22,7 @@ float Ki = 0.05f; // tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 0.01f; // placeholder — tune
+float accelConstant = 2.0f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -95,14 +95,18 @@ void MotionController::update() { // This controls the motors
         if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
     }
 
-    Serial.print("dPath: ");
-    Serial.print(dPath);
-    Serial.print(" | vPath: ");
-    Serial.print(vPath);
-    Serial.print(" | ceiling1: ");
-    Serial.print(ceiling1);
-    Serial.print(" | ceiling2: ");
-    Serial.println(ceiling2);
+    bool shouldPrint = debugTick();
+
+    if (shouldPrint) {
+        Serial.print("dPath: ");
+        Serial.print(dPath);
+        Serial.print(" | vPath: ");
+        Serial.print(vPath);
+        Serial.print(" | ceiling1: ");
+        Serial.print(ceiling1);
+        Serial.print(" | ceiling2: ");
+        Serial.println(ceiling2);
+    }
 
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
@@ -180,12 +184,14 @@ void MotionController::update() { // This controls the motors
         
     }
 
-    Serial.print("M1 error: ");
-    Serial.print(motor1Error);
-    Serial.print(" | M2 error: ");
-    Serial.print(motor2Error);
-    Serial.print(" | Complete: ");
-    Serial.println(moving_completed);
+    if (shouldPrint) {
+        Serial.print("M1 error: ");
+        Serial.print(motor1Error);
+        Serial.print(" | M2 error: ");
+        Serial.print(motor2Error);
+        Serial.print(" | Complete: ");
+        Serial.println(moving_completed);
+    }
 }
 
 
@@ -242,13 +248,38 @@ void MotionController::updateAbsolutePosition() {
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
-    float v = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
-        if (v > speed) {
-            v = speed;
-        }
-        return v;
+    // Accel phase: ramps up from MIN_SPEED as distance traveled increases
+    float accelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
+
+
+    // Decel phase: ramps down toward MIN_SPEED as distance remaining shrinks
+    float remaining = pathLengthCounts - distanceTraveled;
+    if (remaining < 0.0f) {
+        remaining = 0.0f;
+    }
+    float decelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * remaining);
+
+
+    // Whichever phase is more restrictive at this point in the move wins
+    float v = accelPhase;
+    if (decelPhase < v) {
+        v = decelPhase;
+    }
+    if (v > speed) {
+        v = speed;
+    }
+    return v;
+
 }
 
+bool MotionController::debugTick() {
+    unsigned long now = millis();
+    if (now - lastDebugPrint >= DEBUG_PRINT_INTERVAL_MS) {
+        lastDebugPrint = now;
+        return true;
+    }
+    return false;
+}
 
 // State functions
 void MotionController::Idle() {
@@ -263,10 +294,13 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
-    Serial.print("Homing state: ");
-    Serial.print(homingState);
-    Serial.print(" | last_pressed: ");
-    Serial.println(last_pressed);
+    if (debugTick()) {
+        Serial.print("Homing state: ");
+        Serial.print(homingState);
+        Serial.print(" | last_pressed: ");
+        Serial.println(last_pressed);
+    }
+
     // Homing state machine
     switch (homingState) {
         case MOVE_TO_LEFT:

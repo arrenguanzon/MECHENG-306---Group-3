@@ -67,6 +67,9 @@ class MotionController {
         float integralMotor1;
         float integralMotor2;
 
+        static const unsigned long DEBUG_PRINT_INTERVAL_MS = 200; // throttle debug output to 5 Hz
+        unsigned long lastDebugPrint = 0;
+        bool debugTick(); // returns true (and resets the timer) once per interval
         
     public:
 
