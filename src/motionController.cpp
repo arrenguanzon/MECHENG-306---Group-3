@@ -17,8 +17,8 @@ int MAX_SPEED = 200; // tuned
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.1f; // tune
-float Ki = 0.05f; // tune
+float Kp = 0.05f; // tune
+float Ki = 0.01f; // tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
