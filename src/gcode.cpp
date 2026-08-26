@@ -1,7 +1,7 @@
 #include "gcode.h"
 
-#define GANTRY_WIDTH 205
-#define GANTRY_HEIGHT 139
+#define GANTRY_WIDTH 230
+#define GANTRY_HEIGHT 160
 
 GCode::GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
     raw_command = rc;

@@ -205,5 +205,3 @@ void ENCODER2BISR() {
         encoder.incrementMotor2Count();
     }
 }
-
-

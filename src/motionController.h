@@ -41,6 +41,7 @@ class MotionController {
         enum HomingState {
             MOVE_TO_LEFT,
             BOTTOM_EDGE_CASE_WAIT,
+            TOP_EDGE_CASE_WAIT,
             MOVE_RIGHT,
             WAIT_AFTER_RIGHT,
             MOVE_TO_BOTTOM,
