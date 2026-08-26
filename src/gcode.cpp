@@ -2,7 +2,7 @@
 
 
 #define GANTRY_WIDTH 205
-#define GANTRY_HEIGHT 135
+#define GANTRY_HEIGHT 139
 
 
 GCode::GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
@@ -155,6 +155,9 @@ void GCode::tokeniseInput(const String &rc) {
         } else {
             speed_target = previous_speed;
         }
+        if (speed_target > 250.0f) {
+            speed_target = 250.0f;
+        }
     }
 }
 
@@ -253,7 +256,7 @@ bool GCode::parseValue(const String &token) {
         if (has_speed) {
             return false; // Duplicate F value
         }
-        speed_target = FeedrateToPWM(value);
+        speed_target = value;
         has_speed = true;
     }
 
@@ -333,19 +336,4 @@ float GCode::getSpeedTarget() const {
 
 bool GCode::isValid() const {
     return valid_command;
-}
-
-float GCode::FeedrateToPWM(float feedrate) {
-    // from data sheet: 33RPM for 6v
-    // at 9v, rpm = 33 * (9/6) = 49.5RPM
-    // feedrate is in mm/min
-    // RPM needed = feedrate / circumference (pi * 15)
-    // PWM value = (RPM / 49.5) * 255
-    float pwmValue = ((feedrate / (PI * 15)) / 49.5) * 255.0f;
-    if (pwmValue > 180.0f) {
-        pwmValue = 180.0f;
-    } else if (pwmValue < 0.0f) {
-        pwmValue = 0.0f;
-    }
-    return pwmValue;
 }

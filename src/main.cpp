@@ -77,13 +77,12 @@ void setup()
     // Attach interrupts for limit switches
     attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
     //Top switch
-    PCICR |= (1 << PCIE0); // enable pin change interrupt group 0
-    PCMSK0 |= (1 << PCINT4); // enables PCINT4, which corresponds to pin 10 on the Arduino Mega
-
+    PCICR |= (1 << PCIE0); 
+    PCMSK0 |= (1 << PCINT4);
     //Right switch
+    PCICR |= (1 << PCIE2);      
+    PCMSK2 |= (1 << PCINT16);
     attachInterrupt(digitalPinToInterrupt(switch_left), LeftISR, FALLING);
-    PCICR |= (1 << PCIE2); // enable pin change interrupt group 2
-    PCMSK2 |= (1 << PCINT16); // enables PCINT16, which corresponds to pin A8 on the Arduino Mega
 
     // Attach interrupts for encoders
     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), ENCODER1AISR, CHANGE);
@@ -124,7 +123,7 @@ void loop(){
 // Limit switch interrupt service routines
 void BottomISR(){
     unsigned long now = millis();
-    if((digitalRead(switch_bottom) == LOW && (now - last_sB_time >= DEBOUNCE_MS)) ) { // triggers when switch is pressed (specify as this is a pin change pin)
+    if((digitalRead(switch_bottom) == LOW && (now - last_sB_time >= DEBOUNCE_MS)) ) {
         last_sB_time = now;
         last_pressed = MotionController::sB;
         if (fsm.getState() != FSM::HOMING) {
@@ -144,7 +143,7 @@ ISR(PCINT0_vect) { // Top Limit Switch
 
 ISR(PCINT2_vect) { // Right Limit Switch
     unsigned long now = millis();
-    if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { // triggers when switch is pressed (specify as this is a pin change pin)
+    if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { 
         last_sR_time = now;
         last_pressed = MotionController::sR;
         fsm.setState(FSM::FAULT);
