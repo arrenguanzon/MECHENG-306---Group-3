@@ -12,17 +12,18 @@ int homing_M2_Speed = 192;
 int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
-int MIN_SPEED = 75; // tuned
-int MAX_SPEED = 200; // tuned
+int MIN_SPEED = 85; // tuned
+int MAX_SPEED = 250; // tuned
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.1f; // tune
-float Ki = 0.05f; // tune
+float Kp = 0.05f; // tune
+float Ki = 0.0f; // tune
+float Kcc = 0.4f; // cross-coupling gain — tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 0.01f; // placeholder — tune
+float accelConstant = 30.0f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -69,7 +70,6 @@ void MotionController::setTarget(float x, float y, float speed) {
 }
 
 void MotionController::update() { // This controls the motors
-
     if (moving_completed) {
         Serial.println("Motion completed");
         return;
@@ -93,8 +93,23 @@ void MotionController::update() { // This controls the motors
     float ceiling1 = speed;
     float ceiling2 = speed;
     if (pathLengthCounts > 0.0f) {
-        ceiling1 = vPath * (dist1Total / pathLengthCounts);
-        ceiling2 = vPath * (dist2Total / pathLengthCounts);
+        float ratio1 = dist1Total / pathLengthCounts;
+        float ratio2 = dist2Total / pathLengthCounts;
+
+        // Boost vPath (preserving the ratio1:ratio2 lock) so neither motor's
+        // ceiling drops below MIN_SPEED — instead of flooring each motor
+        // independently, which would break proportionality between them.
+        float effectiveVPath = vPath;
+        if (ratio1 > 0.0f && ratio2 > 0.0f) {
+            float minRatio = (ratio1 < ratio2) ? ratio1 : ratio2;
+            float requiredVPath = MIN_SPEED / minRatio;
+            if (requiredVPath > effectiveVPath) {
+                effectiveVPath = requiredVPath;
+            }
+        }
+
+        ceiling1 = effectiveVPath * ratio1;
+        ceiling2 = effectiveVPath * ratio2;
         if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
         if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
     }
@@ -246,11 +261,25 @@ void MotionController::updateAbsolutePosition() {
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
-    float v = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
-        if (v > speed) {
-            v = speed;
-        }
-        return v;
+    // Accel phase: ramps up from MIN_SPEED as distance traveled increases
+    float accelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
+
+    // Decel phase: ramps down toward MIN_SPEED as distance remaining shrinks
+    float remaining = pathLengthCounts - distanceTraveled;
+    if (remaining < 0.0f) {
+        remaining = 0.0f;
+    }
+    float decelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * remaining);
+
+    // Whichever phase is more restrictive at this point in the move wins
+    float v = accelPhase;
+    if (decelPhase < v) {
+        v = decelPhase;
+    }
+    if (v > speed) {
+        v = speed;
+    }
+    return v;
 }
 
 
