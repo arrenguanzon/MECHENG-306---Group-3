@@ -24,8 +24,16 @@ class MotionController {
         float& absoluteY;
         volatile SwitchState& last_pressed;
 
-        long motor1Error;
-        long motor2Error;
+        // Velocity profile: snapshot of encoder counts at the start of the current move
+        long startMotor1;
+        long startMotor2;
+
+        // Velocity profile: total distance (in counts) each motor must travel this move
+        float dist1Total;
+        float dist2Total;
+
+        // Velocity profile: true Cartesian path length for this move, in counts
+        float pathLengthCounts;
 
         bool moving_completed;
 
@@ -33,15 +41,22 @@ class MotionController {
         enum HomingState {
             MOVE_TO_LEFT,
             BOTTOM_EDGE_CASE_WAIT,
-            TOP_EDGE_CASE_WAIT,
             MOVE_RIGHT,
             WAIT_AFTER_RIGHT,
             MOVE_TO_BOTTOM,
             MOVE_UP,
-            HOMING_COMPLETE
+            HOMING_COMPLETE,
+            WAIT_AFTER_UP,
+            MOVE_TO_LEFT2,
+            MOVE_RIGHT2,
+            WAIT_AFTER_RIGHT2,
+            MOVE_TO_BOTTOM2,
+            MOVE_UP2,
+            WAIT_AFTER_UP2
         };
         HomingState homingState = MOVE_TO_LEFT;
         volatile bool homingComplete = false;
+        volatile bool homingRunning = false;
 
         // PI control variables
         // Track previous integrals
@@ -61,6 +76,7 @@ class MotionController {
         bool isCompleted() const;
         void calculateMotorTargets();
         void updateAbsolutePosition();
+        float calculateVelocityCeiling(float distanceTraveled) const;
 
         // State motion controls
         void Idle();
