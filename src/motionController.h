@@ -6,6 +6,8 @@
 #include "gcode.h"
 
 class MotionController {
+    public:
+        enum SwitchState {sT, sB, sL, sR, START};
     private:
         Encoder& encoder;
 
@@ -14,30 +16,61 @@ class MotionController {
         float speed;
 
         // Target Motor Encoder Counts
-        int targetMotor1; 
-        int targetMotor2;
+        long targetMotor1; 
+        long targetMotor2;
 
         // Reference to absolute position variables
         float& absoluteX;
         float& absoluteY;
+        volatile SwitchState& last_pressed;
 
-        int motor1Error;
-        int motor2Error;
+        long motor1Error;
+        long motor2Error;
 
-        bool completed;
+        bool moving_completed;
+
+        // Homing state machine and variables
+        enum HomingState {
+            MOVE_TO_LEFT,
+            BOTTOM_EDGE_CASE_WAIT,
+            TOP_EDGE_CASE_WAIT,
+            MOVE_RIGHT,
+            WAIT_AFTER_RIGHT,
+            MOVE_TO_BOTTOM,
+            MOVE_UP,
+            HOMING_COMPLETE
+        };
+        HomingState homingState = MOVE_TO_LEFT;
+        volatile bool homingComplete = false;
+
+        // PI control variables
+        // Track previous integrals
+        float prevIntegralMotor1;
+        float prevIntegralMotor2;
+
+        // Integral terms for PID control
+        float integralMotor1;
+        float integralMotor2;
+
         
     public:
-        enum SwitchState {sT, sB, sL, sR, START};
 
-        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY);
+        MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed);
         void setTarget(float x, float y, float speed);
         void update();
         bool isCompleted() const;
         void calculateMotorTargets();
+        void updateAbsolutePosition();
 
         // State motion controls
         void Idle();
-        void Homing(const volatile SwitchState& switchState);
+        // Homing state functions
+        void HomingIdle();
+        void HomingFunction();
+        bool isHomingComplete() const;
+        void StartHoming();
+        void HomingFlagSetter();
+
 };
 
 #endif // MOTIONCONTROLLER_H

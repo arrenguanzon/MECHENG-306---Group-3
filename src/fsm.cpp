@@ -3,6 +3,7 @@
 FSM::FSM(MotionController& controller, volatile MotionController::SwitchState& switchState) : motionController(controller), switchState(switchState)
 {
     state = IDLE;
+    previousState = IDLE;
 }
 
 void FSM::processCommand(const GCode& gcode)
@@ -16,6 +17,7 @@ void FSM::processCommand(const GCode& gcode)
         case IDLE:
             if (gcode.getCommand() == GCode::G28) {
                 switchState = MotionController::START;
+                motionController.StartHoming();
                 setState(HOMING);
             }
             else if (gcode.getCommand() == GCode::G1) {
@@ -37,7 +39,8 @@ void FSM::processCommand(const GCode& gcode)
             break;
 
         case HOMING:
-            // We'll implement this later
+            // Don't accept another homing command
+            // while currently homing.
             break;
 
         case MOVING:
@@ -55,6 +58,15 @@ void FSM::processCommand(const GCode& gcode)
 
 void FSM::update()
 {
+    if (state != previousState) {
+        Serial.print("FSM State: ");
+        Serial.print(getStateName(previousState));
+        Serial.print(" -> ");
+        Serial.println(getStateName(state));
+
+        previousState = state;
+    }
+
     switch (state)
     {
         case IDLE:
@@ -62,9 +74,10 @@ void FSM::update()
             break;
 
         case HOMING:
-             motionController.Homing(switchState);
-            // Homing has finished once Homing() returns
-            setState(IDLE);
+            motionController.HomingFunction();
+            if (motionController.isHomingComplete()) {
+                setState(IDLE);
+            }
 
             break;
 
@@ -86,10 +99,15 @@ FSM::State FSM::getState() const{
 }
 
 void FSM::setState(State newState) {
+    // Alerts the user of the state change
     state = newState;
 }
 
 const char* FSM::getStateName() const {
+    return getStateName(state);
+}
+
+const char* FSM::getStateName(State state) const {
     switch (state) {
         case IDLE:
             return "IDLE";
@@ -103,5 +121,3 @@ const char* FSM::getStateName() const {
             return "UNKNOWN";
     }
 }
-
-

@@ -16,6 +16,7 @@ class FSM {
 
     private:
         State state;
+        State previousState;
         MotionController& motionController; 
         volatile MotionController::SwitchState& switchState;
 
@@ -26,6 +27,7 @@ class FSM {
         void setState(State newState);
         State getState() const;
         const char* getStateName() const;
+        const char* getStateName(State state) const;
 };
 
 #endif

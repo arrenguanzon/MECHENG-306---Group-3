@@ -1,259 +1,325 @@
-// #include "motionController.h"
+#include "motionController.h"
 
-// // Set up motor pins
-// #define motor1_pin 7
-// #define enable1_pin 6
-// #define enable2_pin 5
-// #define motor2_pin 4
+// Set up motor pins
+#define motor1_pin 7
+#define enable1_pin 6
+#define enable2_pin 5
+#define motor2_pin 4
 
-// // Homing base speeds
-// int M2_speed = 100;
-// int M1_speed = M2_speed * 1.3;
-// #define MIN_SPEED 40
+// Homing base speeds
+int homing_M2_Speed = 100;
+int homing_M1_Speed = 130;
+#define MIN_SPEED 75
 // #define MAX_SPEED 100
-// #define SLOW_ZONE 500
-// #define POSITION_TOLERANCE 100 // Tolerance in encoder counts for position control
 
-// MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY) {
-//     targetX = 0.0f;
-//     targetY = 0.0f;
-//     speed = 0.0f;
+// PI Variables
+// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
+float Kp = 0.1f; // tune
+float Ki = 0.05f; // tune
+int positionTolerance = 100; //adjust based on testing
 
-//     targetMotor1 = 0;
-//     targetMotor2 = 0;
-//     completed = true;
-// }
+MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
+    targetX = 0.0f;
+    targetY = 0.0f;
+    speed = 0.0f;
 
-// void MotionController::setTarget(float x, float y, float speed) {
-//     targetX = x;
-//     targetY = y;
-//     this->speed = speed;
+    targetMotor1 = 0;
+    targetMotor2 = 0;
 
-//     Serial.println("=== setTarget() ===");
-//     Serial.print("targetX: ");
-//     Serial.println(targetX);
-//     Serial.print("targetY: ");
-//     Serial.println(targetY);
-//     Serial.print("speed: ");
-//     Serial.println(this->speed);
+    prevIntegralMotor1 = 0;
+    prevIntegralMotor2 = 0;
 
-//     calculateMotorTargets();
+    integralMotor1 = 0;
+    integralMotor2 = 0;
 
-//     Serial.print("targetMotor1: ");
-//     Serial.println(targetMotor1);
-//     Serial.print("targetMotor2: ");
-//     Serial.println(targetMotor2);
+    moving_completed = true;
+}
+
+void MotionController::setTarget(float x, float y, float speed) {
+    targetX = x;
+    targetY = y;
+    this->speed = speed;
+
+    Serial.println("=== setTarget() ===");
+    Serial.print("targetX: ");
+    Serial.println(targetX);
+    Serial.print("targetY: ");
+    Serial.println(targetY);
+    Serial.print("speed: ");
+    Serial.println(this->speed);
+
+    calculateMotorTargets();
+
+    Serial.print("targetMotor1: ");
+    Serial.println(targetMotor1);
+    Serial.print("targetMotor2: ");
+    Serial.println(targetMotor2);
     
-//     completed = false;
-// }
+    moving_completed = false;
+}
 
-// void MotionController::update() { // This controls the motors
-//     Serial.println("=== update() ===");
+void MotionController::update() { // This controls the motors
 
-//     if (completed) {
-//         Serial.println("Motion already completed");
-//         return;
-//     }
+    if (moving_completed) {
+        Serial.println("Motion completed");
+        return;
+    }
 
-//     // Get current encoder positions
-//     long current1 = encoder.getMotor1Count();
-//     long current2 = encoder.getMotor2Count();
+    // Update current motor positions (these are relative to the position when motion was called; starts at 0 and increases to target)
+    long currentMotor1 = encoder.getMotor1Count();
+    long currentMotor2 = encoder.getMotor2Count();
 
-//     // Calculate position errors
-//     long error1 = targetMotor1 - current1;
-//     long error2 = targetMotor2 - current2;
-
-//     Serial.print("M1: ");
-//     Serial.print(current1);
-//     Serial.print(" / ");
-//     Serial.print(targetMotor1);
-
-//     Serial.print("    M2: ");
-//     Serial.print(current2);
-//     Serial.print(" / ");
-//     Serial.println(targetMotor2);
-
-//     // MOTOR 1
-//     int motor1Speed;
-
-//     if (abs(error1) <= POSITION_TOLERANCE) {
-//         // Close enough to target
-//         motor1Speed = 0;
-//     }
-//     else if (abs(error1) < SLOW_ZONE) {
-//         // Slow down as we approach target
-//         motor1Speed = map(
-//             abs(error1),
-//             0,
-//             SLOW_ZONE,
-//             MIN_SPEED,
-//             MAX_SPEED
-//         );
-//     }
-//     else {
-//         // Far from target
-//         motor1Speed = MAX_SPEED;
-//     }
-
-//     // Motor 1 direction
-//     //
-//     // HIGH -> positive encoder counts
-//     // LOW  -> negative encoder counts
-//     if (error1 > 0) {
-//         digitalWrite(motor1_pin, HIGH);
-//     }
-//     else if (error1 < 0) {
-//         digitalWrite(motor1_pin, LOW);
-//     }
-//     analogWrite(enable1_pin, motor1Speed);
-
-//     // MOTOR 2
-//     int motor2Speed;
-
-//     if (abs(error2) <= POSITION_TOLERANCE) {
-//         // Close enough to target
-//         motor2Speed = 0;
-//     }
-//     else if (abs(error2) < SLOW_ZONE) {
-//         // Slow down as we approach target
-//         motor2Speed = map(
-//             abs(error2),
-//             0,
-//             SLOW_ZONE,
-//             MIN_SPEED,
-//             MAX_SPEED
-//         );
-//     }
-//     else {
-//         // Far from target
-//         motor2Speed = MAX_SPEED;
-//     }
-
-//     // Motor 2 direction
-//     //
-//     // HIGH -> positive encoder counts
-//     // LOW  -> negative encoder counts
-//     if (error2 > 0) {
-//         digitalWrite(motor2_pin, HIGH);
-//     }
-//     else if (error2 < 0) {
-//         digitalWrite(motor2_pin, LOW);
-//     }
-
-//     analogWrite(enable2_pin, motor2Speed);
-
-//     // TARGET REACHED //
-//     if (abs(error1) <= POSITION_TOLERANCE &&
-//         abs(error2) <= POSITION_TOLERANCE) {
-//         Serial.println("=== TARGET REACHED ===");
-//         // Stop both motors
-//         analogWrite(enable1_pin, 0);
-//         analogWrite(enable2_pin, 0);
-
-//         completed = true;
-//     }
-// }
+    // Calculate errors (direction of motion is determined by the sign of the error)
+    long motor1Error = targetMotor1 - currentMotor1;
+    long motor2Error = targetMotor2 - currentMotor2;
 
 
-// bool MotionController::isCompleted() const {
-//     return completed;
-// }
+    // MOTOR 1 CONTROL //
+    if (abs(motor1Error) <= positionTolerance)  {
+        // Stop motor 1
+        digitalWrite(motor1_pin, 0);
+        analogWrite(enable1_pin, 0);
 
-// void MotionController::calculateMotorTargets() {
-//     long motor1Counts = encoder.convertToCounts(targetX - targetY);
-//     long motor2Counts = encoder.convertToCounts(targetX + targetY);
+        // Reset integral terms
+        integralMotor1 = 0;
+        prevIntegralMotor1 = 0;
+    } else {
+        // Integral terms for PID control
+        integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
+        // Motor output
+        float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
 
-//     Serial.println("=== calculateMotorTargets() ===");
+        // Integral clamping to prevent windup
+        if (speedMotor1 > speed) {
+            speedMotor1 = speed;
+            integralMotor1 = prevIntegralMotor1; // Clamp: DON'T update integral!
+        } else {
+            prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
+        }
+        if (speedMotor1 < MIN_SPEED) {
+            speedMotor1 = MIN_SPEED;
+        }
 
-//     Serial.print("motor1Counts: ");
-//     Serial.println(motor1Counts);
+        // MOTOR 1 CONTROL //
+        digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
+        analogWrite(enable1_pin, speedMotor1);
+    }
 
-//     Serial.print("motor2Counts: ");
-//     Serial.println(motor2Counts);
+    // MOTOR 2 CONTROL //
+    if (abs(motor2Error) <= positionTolerance) {
+        // Stop motor 2
+        digitalWrite(motor2_pin, 0);
+        analogWrite(enable2_pin, 0);
 
-//     Serial.print("Current M1: ");
-//     Serial.println(encoder.getMotor1Count());
+        // Reset integral terms
+        integralMotor2 = 0;
+        prevIntegralMotor2 = 0;
+    } else {
+        // Integral terms for PID control
+        integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
 
-//     Serial.print("Current M2: ");
-//     Serial.println(encoder.getMotor2Count());
+        // Calculate motor speed outputs
+        float speedMotor2 = abs(Kp * motor2Error + integralMotor2);
 
-//     // Convert target positions to encoder counts
-//     targetMotor1 = encoder.getMotor1Count() + motor1Counts;
-//     targetMotor2 = encoder.getMotor2Count() + motor2Counts;
+        // Integral clamping to prevent windup
+        if (speedMotor2 > speed) {
+            speedMotor2 = speed;
+            integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
+        } else {
+            prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
+        }
+        if (speedMotor2 < MIN_SPEED) {
+            speedMotor2 = MIN_SPEED;
+        }
 
-//     Serial.print("Target M1: ");
-//     Serial.println(targetMotor1);
+        // MOTOR 2 CONTROL //
+        digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
+        analogWrite(enable2_pin, speedMotor2);
+    }
 
-//     Serial.print("Target M2: ");
-//     Serial.println(targetMotor2);
-// }
+    if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
+        updateAbsolutePosition();
+
+        Serial.println("=== Movement Complete ===");
+        Serial.print("Absolute X: ");
+        Serial.println(absoluteX);
+        Serial.print("Absolute Y: ");
+        Serial.println(absoluteY);
+
+        moving_completed = true;
+        
+    }
+
+    Serial.print("M1 error: ");
+    Serial.print(motor1Error);
+    Serial.print(" | M2 error: ");
+    Serial.print(motor2Error);
+    Serial.print(" | Complete: ");
+    Serial.println(moving_completed);
+}
 
 
-// // State functions
-// void MotionController::Idle() {
-//     // Stop both motors
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 0);
-// }
+bool MotionController::isCompleted() const {
+    return moving_completed;
+}
 
-// void MotionController::Homing(const volatile SwitchState& switchState){
-//     int a = 0;
-//     while(switchState != MotionController::sL){
-//         if(switchState == MotionController::sB && a == 0){
-//             digitalWrite(motor1_pin, LOW);
-//             digitalWrite(motor2_pin, HIGH);
-//             analogWrite(enable1_pin, M1_speed);
-//             analogWrite(enable2_pin, M2_speed); 
-//             delay(1000);
-//             a = 1;
-//         }
-//         digitalWrite(motor1_pin, LOW);
-//         digitalWrite(motor2_pin, LOW);
-//         analogWrite(enable1_pin, M1_speed);
-//         analogWrite(enable2_pin, M2_speed);
+void MotionController::calculateMotorTargets() {
+    long motor1Counts = encoder.convertToCounts(targetX - targetY);
+    long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-//     }
-    
-    
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 0);
-//     delay(500);
+    Serial.println("=== calculateMotorTargets() ===");
 
-//     // implement logic to move to the right
-//     digitalWrite(motor1_pin, HIGH);
-//     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, M1_speed);
-//     analogWrite(enable2_pin, M2_speed);
-//     delay(500);
-    
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 0);
-//     delay(500);
+    Serial.print("motor1Counts: ");
+    Serial.println(motor1Counts);
 
-//     // while((switchState == MotionController::START) || (switchState == MotionController::sT) || (switchState == MotionController::sL) || (switchState == MotionController::sR)){
-//     while(switchState != MotionController::sB){
-//         digitalWrite(motor1_pin, HIGH);
-//         digitalWrite(motor2_pin, LOW);
-//         analogWrite(enable1_pin, M1_speed);
-//         analogWrite(enable2_pin, M2_speed);
+    Serial.print("motor2Counts: ");
+    Serial.println(motor2Counts);
 
-//     }
-    
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 0);
-//     delay(500);
-    
-//     digitalWrite(motor1_pin, LOW);
-//     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, M1_speed);
-//     analogWrite(enable2_pin, M2_speed);
-//     delay(500);
-    
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 0);
-//     delay(500);
+    Serial.print("Current M1: ");
+    Serial.println(encoder.getMotor1Count());
 
-//     absoluteX = 0.0f;
-//     absoluteY = 0.0f;
-//     encoder.resetCounts();
-// }
+    Serial.print("Current M2: ");
+    Serial.println(encoder.getMotor2Count());
+
+    // Convert target positions to encoder counts
+    targetMotor1 = encoder.getMotor1Count() + motor1Counts;
+    targetMotor2 = encoder.getMotor2Count() + motor2Counts;
+
+}
+
+void MotionController::updateAbsolutePosition() {
+    absoluteX += targetX;
+    absoluteY += targetY;
+
+    Serial.println("=== Absolute Position Updated ===");
+    Serial.print("Absolute X: ");
+    Serial.println(absoluteX);
+    Serial.print("Absolute Y: ");
+    Serial.println(absoluteY);
+}
+
+
+// State functions
+void MotionController::Idle() {
+    // Stop both motors
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+}
+
+void MotionController::HomingIdle(){
+    analogWrite(enable1_pin, 0);
+    analogWrite(enable2_pin, 0);
+}
+
+void MotionController::HomingFunction() {
+    Serial.print("Homing state: ");
+    Serial.print(homingState);
+    Serial.print(" | last_pressed: ");
+    Serial.println(last_pressed);
+    // Homing state machine
+    switch (homingState) {
+        case MOVE_TO_LEFT:
+            if (last_pressed == sB) {
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                setTarget(0.0f, 5.0f, 75.0f);
+                homingState = BOTTOM_EDGE_CASE_WAIT;
+            } else if (last_pressed == sT) {
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+                setTarget(0.0f, -5.0f, 75.0f);
+                homingState = TOP_EDGE_CASE_WAIT;
+            }else if (last_pressed == sL) {
+                HomingIdle();
+                homingState = MOVE_RIGHT;
+            } else {
+                digitalWrite(motor1_pin, LOW);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+            }
+            break;
+
+        case BOTTOM_EDGE_CASE_WAIT:
+            update();
+            if (isCompleted()) {
+                homingState = MOVE_TO_LEFT;
+            }
+            break;
+        
+        case TOP_EDGE_CASE_WAIT:
+            update();
+            if (isCompleted()) {
+                homingState = MOVE_TO_LEFT;
+            }
+            break;
+
+        case MOVE_RIGHT:
+            setTarget(5.0f, 0.0f, 75.0f);
+            last_pressed = START; // Reset last_pressed to avoid repeated triggering
+            homingState = WAIT_AFTER_RIGHT;
+            break;
+
+        case WAIT_AFTER_RIGHT:
+            update();
+            if (isCompleted()) {
+                HomingIdle();
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                homingState = MOVE_TO_BOTTOM;
+            }
+            break;
+
+        case MOVE_TO_BOTTOM:
+            if (last_pressed == sB) {
+                last_pressed = START; // Reset last_pressed to avoid repeated triggering
+                HomingIdle();
+                homingState = MOVE_UP;
+            } else {
+                digitalWrite(motor1_pin, HIGH);
+                digitalWrite(motor2_pin, LOW);
+                analogWrite(enable1_pin, homing_M1_Speed);
+                analogWrite(enable2_pin, homing_M2_Speed);
+            }
+            break;
+
+        case MOVE_UP:
+            digitalWrite(motor1_pin, LOW);
+            digitalWrite(motor2_pin, HIGH);
+            analogWrite(enable1_pin, homing_M1_Speed);
+            analogWrite(enable2_pin, homing_M2_Speed);
+            last_pressed = START; // Reset last_pressed to avoid repeated triggering
+            setTarget(0.0f, 5.0f, 75.0f);
+            homingState = HOMING_COMPLETE;
+            break;
+
+        case HOMING_COMPLETE:
+            update();
+
+            if (isCompleted()) {
+                Serial.println("=== HOMING COMPLETE ===");
+                HomingIdle();
+                absoluteX = 0.0f;
+                absoluteY = 0.0f;
+                encoder.resetCounts();
+                homingComplete = true;
+            }
+            break;
+    }
+}
+
+bool MotionController::isHomingComplete() const {
+    return homingComplete;
+}
+
+void MotionController::StartHoming() {
+    homingState = MOVE_TO_LEFT;
+    homingComplete = false;
+    moving_completed = true;
+
+    integralMotor1 = 0;
+    integralMotor2 = 0;
+    prevIntegralMotor1 = 0;
+    prevIntegralMotor2 = 0;
+}

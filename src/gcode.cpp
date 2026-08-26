@@ -1,7 +1,9 @@
 #include "gcode.h"
 
+#define GANTRY_WIDTH 230
+#define GANTRY_HEIGHT 160
 
-GCode::GCode(String &rc){
+GCode::GCode(String &rc, float& abs_x, float& abs_y) : absoluteX(abs_x), absoluteY(abs_y) {
     raw_command = rc;
 
     command = UNDEFINED;
@@ -18,13 +20,41 @@ GCode::GCode(String &rc){
     tokeniseInput(rc);
 }
 
-
 void GCode::tokeniseInput(const String &rc) {
-    int start = 0;
+    unsigned int start = 0;
     bool valid = true;
-    for (int i = 0; i <= rc.length(); i++) {
-        if (i == rc.length() || rc.charAt(i) == ' ') {
-            String token = rc.substring(start, i);
+
+    //split rc after ;
+    int end = rc.indexOf(';');
+
+    String rc_filtered;
+    if (end >= 0) {
+        rc_filtered = rc.substring(0, end);
+    } else {
+        rc_filtered = rc;
+    }
+    
+     rc_filtered.trim();
+
+    for (unsigned int i = 0; i <= rc_filtered.length(); i++) {
+
+        if (i == rc_filtered.length() ||
+            rc_filtered.charAt(i) == ' ' ||
+            rc_filtered.charAt(i) == 'X' ||
+            rc_filtered.charAt(i) == 'x' ||
+            rc_filtered.charAt(i) == 'Y' ||
+            rc_filtered.charAt(i) == 'y' ||
+            rc_filtered.charAt(i) == 'F' ||
+            rc_filtered.charAt(i) == 'f' ||
+            rc_filtered.charAt(i) == 'G' ||
+            rc_filtered.charAt(i) == 'g' ||
+            rc_filtered.charAt(i) == 'M' ||
+            rc_filtered.charAt(i) == 'm') {
+
+        // A token ends at a space, the start of another command or the end of the string
+
+        if(i>start) {
+            String token = rc_filtered.substring(start, i);
 
             // Check for command tokens
             if (token == "G1" || token == "G01" || token == "g1" || token == "g01") {
@@ -46,19 +76,42 @@ void GCode::tokeniseInput(const String &rc) {
                     valid = false;
                 }
             } else {
-                if (!parseValue(token)) {
-                    valid = false;
-                }
+
+                    if (!parseValue(token)) {
+                        valid = false;
+                    }
+                }  
             }
-            start = i + 1;
+
+            // If this character is a new one, don't skip it --> it normally skips spaces this is here so it dosen't skip commands.
+            if (rc_filtered.charAt(i) == 'X' ||
+                rc_filtered.charAt(i) == 'x' ||
+                rc_filtered.charAt(i) == 'Y' ||
+                rc_filtered.charAt(i) == 'y' ||
+                rc_filtered.charAt(i) == 'F' ||
+                rc_filtered.charAt(i) == 'f' ||
+                rc_filtered.charAt(i) == 'G' ||
+                rc_filtered.charAt(i) == 'g' ||
+                rc_filtered.charAt(i) == 'M' ||
+                rc_filtered.charAt(i) == 'm') {
+
+                start = i;
+            } else {
+                start = i + 1;
+            }
         }
     }
+
     // Validity checks for commands
     if (!valid) {
         valid_command = false;
     } else if (command == G1) {
         // G1 must have at least one of X or Y, and can optionally have F
         valid_command = has_x || has_y;
+        // If the command itself is valid, check the resulting position
+        if (valid_command) {
+            valid_command = checkBounds();
+        }
     } else if (command == G28) {
         // G28 must not have X, Y or F
         valid_command = !has_x && !has_y && !has_speed;
@@ -72,6 +125,15 @@ void GCode::tokeniseInput(const String &rc) {
     // If the command is invalid, print an error message
     if (!valid_command) {
         printErrorCommand();
+    }
+
+    //inheriting speed --> NEED TO TEST!!!!
+    if(command == G1 && valid_command) {
+        if(has_speed) {
+            previous_speed = speed_target;
+        }else {
+            speed_target = previous_speed;
+        }
     }
 }
 
@@ -97,7 +159,7 @@ bool GCode::parseValue(const String &token) {
     bool digitFound = false;
     bool negative = false;
 
-    int start = 1;
+    unsigned int start = 1;
 
     // Allow negative numbers
     if (token.charAt(start) == '-') {
@@ -113,7 +175,7 @@ bool GCode::parseValue(const String &token) {
     float value = 0;
     float decimalPlace = 0.1;
 
-    for (int i = start; i < token.length(); i++) {
+    for (unsigned int i = start; i < token.length(); i++) {
         char c = token.charAt(i);
 
         if (c >= '0' && c <= '9') {
@@ -171,6 +233,42 @@ void GCode::printErrorCommand() const {
     }
 }
 
+bool GCode::checkBounds() {
+    float newX = absoluteX;
+    float newY = absoluteY;
+
+    // G1 movements are RELATIVE
+    if (has_x) {
+        newX += x_target;
+    }
+
+    if (has_y) {
+        newY += y_target;
+    }
+
+    if (newX < 0.0f || newX > GANTRY_WIDTH) {
+        Serial.println("Error: X movement exceeds gantry limits.");
+        Serial.print("Requested X position: ");
+        Serial.println(newX);
+        Serial.print("Allowed range: 0 - ");
+        Serial.println(GANTRY_WIDTH);
+
+        return false;
+    }
+
+    if (newY < 0.0f || newY > GANTRY_HEIGHT) {
+        Serial.println("Error: Y movement exceeds gantry limits.");
+        Serial.print("Requested Y position: ");
+        Serial.println(newY);
+        Serial.print("Allowed range: 0 - ");
+        Serial.println(GANTRY_HEIGHT);
+
+        return false;
+    }
+
+    return true;
+}
+
 
 GCode::Command GCode::getCommand() const {
     return command;
@@ -188,4 +286,3 @@ float GCode::getSpeedTarget() const {
 bool GCode::isValid() const {
     return valid_command;
 }
-
