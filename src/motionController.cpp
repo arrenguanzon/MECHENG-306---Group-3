@@ -12,8 +12,8 @@ int homing_M2_Speed = 192;
 int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
-int MIN_SPEED = 80; // tuned
-int MAX_SPEED = 200; // tuned
+int MIN_SPEED = 85; // tuned
+int MAX_SPEED = 180; // tuned
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 80)
@@ -51,12 +51,6 @@ void MotionController::setTarget(float x, float y, float speed) {
     Serial.println(targetX);
     Serial.print("targetY: ");
     Serial.println(targetY);
-    Serial.print("speed: ");
-    if(this->speed < 80.0f) {
-        Serial.println("80.00");
-    } else {
-        Serial.println(this->speed);
-    }
 
     calculateMotorTargets();
 

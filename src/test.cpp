@@ -1,4 +1,4 @@
-// #include <Arduino.h>
+#include <Arduino.h>
 
 
 // #define motor1_pin 7
@@ -235,4 +235,19 @@
 //             HomingIdle();
 //             break;
 //     }
+// }
+
+// float FeedrateToPWM(float feedrate) {
+//     // from data sheet: 33RPM for 6v
+//     // at 9v, rpm = 33 * (9/6) = 49.5RPM
+//     // feedrate is in mm/min
+//     // RPM needed = feedrate / circumference (pi * 15)
+//     // PWM value = (RPM / 49.5) * 255
+//     float pwmValue = ((feedrate / (PI * 15)) / 49.5) * 255.0f;
+//     if (pwmValue > 255.0f) {
+//         pwmValue = 255.0f;
+//     } else if (pwmValue < 0.0f) {
+//         pwmValue = 0.0f;
+//     }
+//     return pwmValue;
 // }
