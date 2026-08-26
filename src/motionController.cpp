@@ -46,18 +46,18 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetY = y;
     this->speed = speed;
 
-    Serial.println("=== setTarget() ===");
-    Serial.print("targetX: ");
-    Serial.println(targetX);
-    Serial.print("targetY: ");
-    Serial.println(targetY);
+    // Serial.println("=== setTarget() ===");
+    // Serial.print("targetX: ");
+    // Serial.println(targetX);
+    // Serial.print("targetY: ");
+    // Serial.println(targetY);
 
     calculateMotorTargets();
 
-    Serial.print("targetMotor1: ");
-    Serial.println(targetMotor1);
-    Serial.print("targetMotor2: ");
-    Serial.println(targetMotor2);
+    // Serial.print("targetMotor1: ");
+    // Serial.println(targetMotor1);
+    // Serial.print("targetMotor2: ");
+    // Serial.println(targetMotor2);
     
     moving_completed = false;
 }
@@ -93,14 +93,14 @@ void MotionController::update() { // This controls the motors
         if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
     }
 
-    Serial.print("dPath: ");
-    Serial.print(dPath);
-    Serial.print(" | vPath: ");
-    Serial.print(vPath);
-    Serial.print(" | ceiling1: ");
-    Serial.print(ceiling1);
-    Serial.print(" | ceiling2: ");
-    Serial.println(ceiling2);
+    // Serial.print("dPath: ");
+    // Serial.print(dPath);
+    // Serial.print(" | vPath: ");
+    // Serial.print(vPath);
+    // Serial.print(" | ceiling1: ");
+    // Serial.print(ceiling1);
+    // Serial.print(" | ceiling2: ");
+    // Serial.println(ceiling2);
 
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
@@ -168,13 +168,13 @@ void MotionController::update() { // This controls the motors
     if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
         updateAbsolutePosition();
 
-        if(!homingRunning){
-            Serial.println("=== Movement Complete ===");
-            Serial.print("Absolute X: ");
-            Serial.println(absoluteX);
-            Serial.print("Absolute Y: ");
-            Serial.println(absoluteY);
-        }
+        // if(!homingRunning){
+        //     Serial.println("=== Movement Complete ===");
+        //     Serial.print("Absolute X: ");
+        //     Serial.println(absoluteX);
+        //     Serial.print("Absolute Y: ");
+        //     Serial.println(absoluteY);
+        // }
         
         moving_completed = true;
         
@@ -198,13 +198,13 @@ void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-    Serial.println("=== calculateMotorTargets() ===");
+    // Serial.println("=== calculateMotorTargets() ===");
 
-    Serial.print("motor1Counts: ");
-    Serial.println(motor1Counts);
+    // Serial.print("motor1Counts: ");
+    // Serial.println(motor1Counts);
 
-    Serial.print("motor2Counts: ");
-    Serial.println(motor2Counts);
+    // Serial.print("motor2Counts: ");
+    // Serial.println(motor2Counts);
 
     // Snapshot starting position for this move (velocity profile reference point)
     startMotor1 = encoder.getMotor1Count();
@@ -234,13 +234,13 @@ void MotionController::updateAbsolutePosition() {
     absoluteX += targetX;
     absoluteY += targetY;
 
-    if(!homingRunning){
-        Serial.println("=== Absolute Position Updated ===");
-        Serial.print("Absolute X: ");
-        Serial.println(absoluteX);
-        Serial.print("Absolute Y: ");
-        Serial.println(absoluteY);
-    }
+    // if(!homingRunning){
+    //     Serial.println("=== Absolute Position Updated ===");
+    //     Serial.print("Absolute X: ");
+    //     Serial.println(absoluteX);
+    //     Serial.print("Absolute Y: ");
+    //     Serial.println(absoluteY);
+    // }
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
@@ -265,10 +265,10 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
-    Serial.print("Homing state: ");
-    Serial.print(homingState);
-    Serial.print(" | last_pressed: ");
-    Serial.println(last_pressed);
+    // Serial.print("Homing state: ");
+    // Serial.print(homingState);
+    // Serial.print(" | last_pressed: ");
+    // Serial.println(last_pressed);
     homingRunning = true;
 
     // Homing state machine
