@@ -8,23 +8,21 @@
 #define motor2_pin 4
 
 // Homing base speeds
-int homing_M2_Speed = 100;
-int homing_M1_Speed = 130;
+int homing_M2_Speed = 192;
+int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
 int MIN_SPEED = 75; // tuned
 int MAX_SPEED = 200; // tuned
 
-// Acceleration rate for trapezoidal velocity profile
-float ACCELERATION_RATE = 0.04f; // PWM units per millisecond (e.g., 0.04 PWM/ms = 0.75s to go from 70 PWM to 100 PWM)
+// PI Variables
+// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
+float Kp = 0.1f; // tune
+float Ki = 0.05f; // tune
+int positionTolerance = 100; //adjust based on testing
 
-// Controller gains
-float Kp = 0.05f; // TUNE FIRST: eliminate tracking error
-float Ki = 0.00f; // TUNE SECOND: eliminate steady state error
-float Kv = 0.8f; // does majority of the heavy lifting for motor power
-
-// Position tolerance (acceptable error in encoder counts)
-int positionTolerance = 800; // TUNE: can be much lower
+// Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
+float accelConstant = 0.01f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -46,11 +44,7 @@ MotionController::MotionController(Encoder& encoder, float& absoluteX, float& ab
 void MotionController::setTarget(float x, float y, float speed) {
     targetX = x;
     targetY = y;
-    
-    this->speed = constrain(speed, MIN_SPEED, MAX_SPEED); // constrain speed to be within min and max limits
-    this->startSpeed = MIN_SPEED; // start at minimum speed
-    this->accelRate = ACCELERATION_RATE; // set acceleration rate
-    this->moveStartTime = millis();
+    this->speed = speed;
 
     Serial.println("=== setTarget() ===");
     Serial.print("targetX: ");
@@ -85,28 +79,35 @@ void MotionController::update() { // This controls the motors
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
-    //// TRAPEZOIDAL VELOCITY PROFILE ////////////////
-    // Gradually increase motor velocity over time (acceleration ramp)
-    unsigned long elapsedTime = millis() - moveStartTime;
-    float accelerationSpeed = startSpeed + (accelRate * (float)elapsedTime); 
-    
-    // Deceleration ramp
-    long maxError = max(abs(motor1Error), abs(motor2Error));
-    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError * (15.0f * PI / 8256.0f)); // deceleration speed = sqrt(2 * acceleration * error distance)
+    // --- Velocity profile: compute the synchronized ceiling for this tick ---
+    float dx = (float)((currentMotor1 - startMotor1) + (currentMotor2 - startMotor2)) / 2.0f;
+    float dy = (float)((currentMotor2 - startMotor2) - (currentMotor1 - startMotor1)) / 2.0f;
+    float dPath = sqrt(dx * dx + dy * dy);
 
-    // Trapezoidal Constraint (Take lowest speed of acceleration, cruise, and deceleration)
-    float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed); // once cruise speed is reached, acceleration speed increases so CRUISE SPEED will be the smallest value
-    currentRampedMaxSpeed = min(currentRampedMaxSpeed, decelerationSpeed); // as error decreases, DECELERATION SPEED will become smaller than cruise control
+    float vPath = calculateVelocityCeiling(dPath);
 
-    // If the velocity profile motor speed is too low (and position tolerance isn't reached), use minimum speed
-    if (currentRampedMaxSpeed < MIN_SPEED && maxError > positionTolerance) {
-        currentRampedMaxSpeed = MIN_SPEED;
+    float ceiling1 = speed;
+    float ceiling2 = speed;
+    if (pathLengthCounts > 0.0f) {
+        ceiling1 = vPath * (dist1Total / pathLengthCounts);
+        ceiling2 = vPath * (dist2Total / pathLengthCounts);
+        if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
+        if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
     }
 
+    Serial.print("dPath: ");
+    Serial.print(dPath);
+    Serial.print(" | vPath: ");
+    Serial.print(vPath);
+    Serial.print(" | ceiling1: ");
+    Serial.print(ceiling1);
+    Serial.print(" | ceiling2: ");
+    Serial.println(ceiling2);
 
-    //// MOTOR 1 /////////////////////////////////////
+    // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
+        digitalWrite(motor1_pin, 0);
         analogWrite(enable1_pin, 0);
 
         // Reset integral terms
@@ -116,24 +117,28 @@ void MotionController::update() { // This controls the motors
         // Integral terms for PID control
         integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
         // Motor output
-         float speedMotor1 = abs(Kp * (float)motor1Error + integralMotor1 + Kv * currentRampedMaxSpeed); // must be positive for analogWrite
+        float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
-        if (speedMotor1 > currentRampedMaxSpeed) {
-            speedMotor1 = currentRampedMaxSpeed; 
-            integralMotor1 = prevIntegralMotor1; // Clamp: don't update integral
+        if (speedMotor1 > ceiling1) {
+            speedMotor1 = ceiling1;
+            integralMotor1 = prevIntegralMotor1; // Clamp: DON'T update integral!
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
+        if (speedMotor1 < MIN_SPEED) {
+            speedMotor1 = MIN_SPEED;
+        }
 
-        // MOTOR 1 CONTROL
+        // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
         analogWrite(enable1_pin, speedMotor1);
     }
 
-    //// MOTOR 2 /////////////////////////////////////
+    // MOTOR 2 CONTROL //
     if (abs(motor2Error) <= positionTolerance) {
         // Stop motor 2
+        digitalWrite(motor2_pin, 0);
         analogWrite(enable2_pin, 0);
 
         // Reset integral terms
@@ -144,17 +149,20 @@ void MotionController::update() { // This controls the motors
         integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
 
         // Calculate motor speed outputs
-        float speedMotor2 = abs(Kp * (float)motor2Error + integralMotor2 + Kv * currentRampedMaxSpeed); // must be positive for analogWrite
+        float speedMotor2 = abs(Kp * motor2Error + integralMotor2);
 
         // Integral clamping to prevent windup
-        if (speedMotor2 > currentRampedMaxSpeed) {
-            speedMotor2 = currentRampedMaxSpeed; // motor speed never goes above MAX_SPEED
-            integralMotor2 = prevIntegralMotor2; // Clamp: don't update integral
+        if (speedMotor2 > ceiling2) {
+            speedMotor2 = ceiling2;
+            integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
+        if (speedMotor2 < MIN_SPEED) {
+            speedMotor2 = MIN_SPEED;
+        }
 
-        // MOTOR 2 CONTROL 
+        // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
         analogWrite(enable2_pin, speedMotor2);
     }
@@ -181,6 +189,7 @@ void MotionController::update() { // This controls the motors
 }
 
 
+
 bool MotionController::isCompleted() const {
     return moving_completed;
 }
@@ -197,15 +206,27 @@ void MotionController::calculateMotorTargets() {
     Serial.print("motor2Counts: ");
     Serial.println(motor2Counts);
 
+    // Snapshot starting position for this move (velocity profile reference point)
+    startMotor1 = encoder.getMotor1Count();
+    startMotor2 = encoder.getMotor2Count();
+
     Serial.print("Current M1: ");
-    Serial.println(encoder.getMotor1Count());
+    Serial.println(startMotor1);
 
     Serial.print("Current M2: ");
-    Serial.println(encoder.getMotor2Count());
+    Serial.println(startMotor2);
 
     // Convert target positions to encoder counts
-    targetMotor1 = encoder.getMotor1Count() + motor1Counts;
-    targetMotor2 = encoder.getMotor2Count() + motor2Counts;
+    targetMotor1 = startMotor1 + motor1Counts;
+    targetMotor2 = startMotor2 + motor2Counts;
+
+    // Velocity profile: per-motor distance and true Cartesian path length for this move
+    dist1Total = abs((float)motor1Counts);
+    dist2Total = abs((float)motor2Counts);
+    pathLengthCounts = encoder.convertToCounts(sqrt(targetX * targetX + targetY * targetY));
+
+    Serial.print("Path length (counts): ");
+    Serial.println(pathLengthCounts);
 
 }
 
@@ -218,6 +239,14 @@ void MotionController::updateAbsolutePosition() {
     Serial.println(absoluteX);
     Serial.print("Absolute Y: ");
     Serial.println(absoluteY);
+}
+
+float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
+    float v = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
+        if (v > speed) {
+            v = speed;
+        }
+        return v;
 }
 
 

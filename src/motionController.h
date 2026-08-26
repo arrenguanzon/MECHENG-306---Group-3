@@ -19,18 +19,21 @@ class MotionController {
         long targetMotor1; 
         long targetMotor2;
 
-        // Trapezoidal velocity profile parameters
-        unsigned long moveStartTime; // tracks when motion started
-        float startSpeed;            // minimum starting speed
-        float accelRate;             // acceleration rate in PWM units per millisecond
-
         // Reference to absolute position variables
         float& absoluteX;
         float& absoluteY;
         volatile SwitchState& last_pressed;
 
-        // long motor1Error; these dont need to be here
-        // long motor2Error;
+        // Velocity profile: snapshot of encoder counts at the start of the current move
+        long startMotor1;
+        long startMotor2;
+
+        // Velocity profile: total distance (in counts) each motor must travel this move
+        float dist1Total;
+        float dist2Total;
+
+        // Velocity profile: true Cartesian path length for this move, in counts
+        float pathLengthCounts;
 
         bool moving_completed;
 
@@ -73,6 +76,7 @@ class MotionController {
         bool isCompleted() const;
         void calculateMotorTargets();
         void updateAbsolutePosition();
+        float calculateVelocityCeiling(float distanceTraveled) const;
 
         // State motion controls
         void Idle();
