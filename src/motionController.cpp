@@ -84,13 +84,22 @@ void MotionController::update() { // This controls the motors
 
     float vPath = calculateVelocityCeiling(dPath);
 
+    if (vPath < MIN_SPEED) vPath = MIN_SPEED;
+
     float ceiling1 = speed;
     float ceiling2 = speed;
     if (pathLengthCounts > 0.0f) {
         ceiling1 = vPath * (dist1Total / pathLengthCounts);
         ceiling2 = vPath * (dist2Total / pathLengthCounts);
-        if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
-        if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
+        // If either motor would need to exceed MAX_SPEED, scale BOTH down
+        // together so the ratio between them — and thus the travel direction —
+        // stays fixed instead of one motor getting clamped independently.
+        float worst = max(ceiling1, ceiling2);
+        if (worst > MAX_SPEED) {
+            float scale = MAX_SPEED / worst;
+            ceiling1 *= scale;
+            ceiling2 *= scale;
+        }
     }
 
     // Serial.print("dPath: ");
@@ -124,9 +133,6 @@ void MotionController::update() { // This controls the motors
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
-        if (speedMotor1 < MIN_SPEED) {
-            speedMotor1 = MIN_SPEED;
-        }
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -155,9 +161,6 @@ void MotionController::update() { // This controls the motors
             integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
-        }
-        if (speedMotor2 < MIN_SPEED) {
-            speedMotor2 = MIN_SPEED;
         }
 
         // MOTOR 2 CONTROL //
