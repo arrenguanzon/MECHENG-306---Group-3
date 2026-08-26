@@ -19,13 +19,18 @@ class MotionController {
         long targetMotor1; 
         long targetMotor2;
 
+        // Trapezoidal velocity profile parameters
+        unsigned long moveStartTime; // tracks when motion started
+        float startSpeed;            // minimum starting speed
+        float accelRate;             // acceleration rate in PWM units per millisecond
+
         // Reference to absolute position variables
         float& absoluteX;
         float& absoluteY;
         volatile SwitchState& last_pressed;
 
-        long motor1Error;
-        long motor2Error;
+        // long motor1Error; these dont need to be here
+        // long motor2Error;
 
         bool moving_completed;
 

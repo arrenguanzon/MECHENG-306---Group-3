@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "motionController.h"
 
 // Set up motor pins
@@ -9,14 +10,21 @@
 // Homing base speeds
 int homing_M2_Speed = 100;
 int homing_M1_Speed = 130;
-#define MIN_SPEED 75
-// #define MAX_SPEED 100
 
-// PI Variables
-// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.1f; // tune
-float Ki = 0.05f; // tune
-int positionTolerance = 100; //adjust based on testing
+// Maximum and minimum speed limits for motors
+int MIN_SPEED = 75; // tuned
+int MAX_SPEED = 200; // tuned
+
+// Acceleration rate for trapezoidal velocity profile
+float ACCELERATION_RATE = 0.04f; // PWM units per millisecond (e.g., 0.04 PWM/ms = 0.75s to go from 70 PWM to 100 PWM)
+
+// Controller gains
+float Kp = 0.00f; // TUNE FIRST: eliminate tracking error
+float Ki = 0.00f; // TUNE SECOND: eliminate steady state error
+float Kv = 0.7f; // does majority of the heavy lifting for motor power
+
+// Position tolerance (acceptable error in encoder counts)
+int positionTolerance = 800; // TUNE: can be much lower
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -38,7 +46,11 @@ MotionController::MotionController(Encoder& encoder, float& absoluteX, float& ab
 void MotionController::setTarget(float x, float y, float speed) {
     targetX = x;
     targetY = y;
-    this->speed = speed;
+    
+    this->speed = constrain(speed, MIN_SPEED, MAX_SPEED); // constrain speed to be within min and max limits
+    this->startSpeed = MIN_SPEED; // start at minimum speed
+    this->accelRate = ACCELERATION_RATE; // set acceleration rate
+    this->moveStartTime = millis();
 
     Serial.println("=== setTarget() ===");
     Serial.print("targetX: ");
@@ -73,11 +85,28 @@ void MotionController::update() { // This controls the motors
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
+    //// TRAPEZOIDAL VELOCITY PROFILE ////////////////
+    // Gradually increase motor velocity over time (acceleration ramp)
+    unsigned long elapsedTime = millis() - moveStartTime;
+    float accelerationSpeed = startSpeed + (accelRate * (float)elapsedTime); 
+    
+    // Deceleration ramp
+    long maxError = max(abs(motor1Error), abs(motor2Error));
+    float decelerationSpeed = sqrt(2.0f * accelRate * (float)maxError); // deceleration speed = sqrt(2 * acceleration * error distance)
 
-    // MOTOR 1 CONTROL //
+    // Trapezoidal Constraint (Take lowest speed of acceleration, cruise, and deceleration)
+    float currentRampedMaxSpeed = min(accelerationSpeed, (float)speed); // once cruise speed is reached, acceleration speed increases so CRUISE SPEED will be the smallest value
+    currentRampedMaxSpeed = min(currentRampedMaxSpeed, decelerationSpeed); // as error decreases, DECELERATION SPEED will become smaller than cruise control
+
+    // If the velocity profile motor speed is too low (and position tolerance isn't reached), use minimum speed
+    if (currentRampedMaxSpeed < MIN_SPEED && maxError > positionTolerance) {
+        currentRampedMaxSpeed = MIN_SPEED;
+    }
+
+
+    //// MOTOR 1 /////////////////////////////////////
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
-        digitalWrite(motor1_pin, 0);
         analogWrite(enable1_pin, 0);
 
         // Reset integral terms
@@ -87,28 +116,24 @@ void MotionController::update() { // This controls the motors
         // Integral terms for PID control
         integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
         // Motor output
-        float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
+         float speedMotor1 = abs(Kp * (float)motor1Error + integralMotor1 + Kv * currentRampedMaxSpeed); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
-        if (speedMotor1 > speed) {
-            speedMotor1 = speed;
-            integralMotor1 = prevIntegralMotor1; // Clamp: DON'T update integral!
+        if (speedMotor1 > currentRampedMaxSpeed) {
+            speedMotor1 = currentRampedMaxSpeed; 
+            integralMotor1 = prevIntegralMotor1; // Clamp: don't update integral
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
-        if (speedMotor1 < MIN_SPEED) {
-            speedMotor1 = MIN_SPEED;
-        }
 
-        // MOTOR 1 CONTROL //
+        // MOTOR 1 CONTROL
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
         analogWrite(enable1_pin, speedMotor1);
     }
 
-    // MOTOR 2 CONTROL //
+    //// MOTOR 2 /////////////////////////////////////
     if (abs(motor2Error) <= positionTolerance) {
         // Stop motor 2
-        digitalWrite(motor2_pin, 0);
         analogWrite(enable2_pin, 0);
 
         // Reset integral terms
@@ -119,20 +144,17 @@ void MotionController::update() { // This controls the motors
         integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
 
         // Calculate motor speed outputs
-        float speedMotor2 = abs(Kp * motor2Error + integralMotor2);
+        float speedMotor2 = abs(Kp * (float)motor2Error + integralMotor2 + Kv * currentRampedMaxSpeed); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
-        if (speedMotor2 > speed) {
-            speedMotor2 = speed;
-            integralMotor2 = prevIntegralMotor2; // Clamp: DON'T update integral!
+        if (speedMotor2 > currentRampedMaxSpeed) {
+            speedMotor2 = currentRampedMaxSpeed; // motor speed never goes above MAX_SPEED
+            integralMotor2 = prevIntegralMotor2; // Clamp: don't update integral
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
-        if (speedMotor2 < MIN_SPEED) {
-            speedMotor2 = MIN_SPEED;
-        }
 
-        // MOTOR 2 CONTROL //
+        // MOTOR 2 CONTROL 
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
         analogWrite(enable2_pin, speedMotor2);
     }
