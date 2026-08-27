@@ -3,6 +3,7 @@
 #include "gcode.h"
 #include "fsm.h"
 #include "motionController.h"
+#include "homing.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -47,11 +48,10 @@ String user_input = "";
 FSM fsm(motionController, last_pressed);
 
 //function prototypes
-void TopISR();
 void BottomISR();
 void LeftISR();
+void TopISR();
 void RightISR();
-void Homing();
 void ENCODER1AISR();
 void ENCODER1BISR();
 void ENCODER2AISR();
@@ -92,6 +92,7 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
+
 
 }
 
@@ -174,9 +175,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 
@@ -185,9 +186,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.decrementMotor1Count();
-    } else {
         encoder.incrementMotor1Count();
+    } else {
+        encoder.decrementMotor1Count();
     }
 }
 

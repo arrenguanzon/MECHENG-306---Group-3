@@ -1,4 +1,5 @@
 #include "fsm.h"
+#include "homing.h"
 
 FSM::FSM(MotionController& controller, volatile MotionController::SwitchState& switchState) : motionController(controller), switchState(switchState)
 {
@@ -50,6 +51,7 @@ void FSM::processCommand(const GCode& gcode)
 
         case FAULT:
             if (gcode.getCommand() == GCode::M999){
+                switchState = MotionController::START;
                 setState(IDLE);
             }
             break;
@@ -82,7 +84,12 @@ void FSM::update()
             break;
 
         case MOVING:
-            motionController.update();
+            motionController.update(switchState);
+
+              if (motionController.Fault(switchState)) {
+                state = FAULT;
+                 Serial.println("Fault state, to exit fault state enter M999");
+            }
             if (motionController.isCompleted()){
                 setState(IDLE);
             }

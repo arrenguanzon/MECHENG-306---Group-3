@@ -101,6 +101,7 @@ void MotionController::update() { // This controls the motors
         Serial.println("Motion completed");
         return;
     }
+    
 
 
     // --- dt for speed measurement and for the integral term ---

@@ -97,7 +97,7 @@ class MotionController {
 
         MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed);
         void setTarget(float x, float y, float speed);
-        void update();
+        void update(const volatile SwitchState& switchState);
         bool isCompleted() const;
         void calculateMotorTargets();
         void updateAbsolutePosition();

@@ -6,11 +6,20 @@
 Encoder::Encoder() {
     motor1Count = 0;
     motor2Count = 0;
+    //distancex = 0;
+    //distancey = 0;
 }
 
 long Encoder::convertToCounts(float distanceInMM) {
     float counts = distanceInMM / MM_PER_COUNT;
     return (long)round(counts);
+}
+
+long Encoder::convertToDistance(float counts){
+    float distance = counts*MM_PER_COUNT;
+
+    return(int)round(distance);
+
 }
 
 long Encoder::getMotor1Count() {
