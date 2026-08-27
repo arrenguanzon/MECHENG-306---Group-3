@@ -57,8 +57,6 @@ void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
 
-// encoder encoderObject;
-
 
 void setup()
 {
@@ -123,7 +121,7 @@ void loop(){
         }
     }
     unsigned long now = millis();
-    if (now - lastControlUpdate >= CONTROL_INTERVAL_MS) {
+    if (now - lastControlUpdate >= CONTROL_INTERVAL_MS) { // Control loop runs at CONTROL_FREQUENCY_HZ = 100 Hz
         lastControlUpdate = now;
         fsm.update();
     }
