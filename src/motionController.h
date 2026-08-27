@@ -56,6 +56,7 @@ class MotionController {
         };
         HomingState homingState = MOVE_TO_LEFT;
         volatile bool homingComplete = false;
+        volatile bool homingRunning = false;
 
         // PI control variables
         // Track previous integrals

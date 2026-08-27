@@ -13,7 +13,7 @@ int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
 int MIN_SPEED = 85; // tuned
-int MAX_SPEED = 200; // tuned
+int MAX_SPEED = 150; // tuned
 
 float motor1_scale = 1.0f;
 float motor2_scale = 0.80f;
@@ -26,12 +26,12 @@ float syncIntegral = 0.0f;
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.08f; // tune
-float Ki = 0.001f; // tune
+float Kp = 0.10f; // tune
+float Ki = 0.002f; // tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 2.5f; // placeholder — tune
+float accelConstant = 2.0f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -55,20 +55,7 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetY = y;
     this->speed = speed;
 
-    Serial.println("=== setTarget() ===");
-    Serial.print("targetX: ");
-    Serial.println(targetX);
-    Serial.print("targetY: ");
-    Serial.println(targetY);
-    Serial.print("speed: ");
-    Serial.println(this->speed);
-
     calculateMotorTargets();
-
-    Serial.print("targetMotor1: ");
-    Serial.println(targetMotor1);
-    Serial.print("targetMotor2: ");
-    Serial.println(targetMotor2);
     
     moving_completed = false;
 }
@@ -125,8 +112,8 @@ void MotionController::update() { // This controls the motors
 
     syncIntegral += syncError;
     // Anti-windup: keep the integral term from growing unbounded
-    if (syncIntegral > 1.4f) syncIntegral = 1.4f;
-    if (syncIntegral < -1.4f) syncIntegral = -1.4f;
+    if (syncIntegral > 1.5f) syncIntegral = 1.5f;
+    if (syncIntegral < -1.5f) syncIntegral = -1.5f;
 
     float syncCorrection = Ksync * syncError + KsyncI * syncIntegral;
 
@@ -135,23 +122,6 @@ void MotionController::update() { // This controls the motors
 
     if (ceiling1 < 0.0f) ceiling1 = 0.0f;
     if (ceiling2 < 0.0f) ceiling2 = 0.0f;
-
-    bool shouldPrint = debugTick();
-
-    if (shouldPrint) {
-        Serial.print("dPath: ");
-        Serial.print(dPath);
-        Serial.print(" | vPath: ");
-        Serial.print(vPath);
-        Serial.print(" | progress1: ");
-        Serial.print(progress1);
-        Serial.print(" | progress2: ");
-        Serial.print(progress2);
-        Serial.print(" | ceiling1: ");
-        Serial.print(ceiling1);
-        Serial.print(" | ceiling2: ");
-        Serial.println(ceiling2);
-    }
 
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
@@ -221,23 +191,17 @@ void MotionController::update() { // This controls the motors
     if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
         updateAbsolutePosition();
 
-        Serial.println("=== Movement Complete ===");
-        Serial.print("Absolute X: ");
-        Serial.println(absoluteX);
-        Serial.print("Absolute Y: ");
-        Serial.println(absoluteY);
+        if(!homingRunning) {
+            Serial.println("=== Movement Complete ===");
+            Serial.print("Absolute X: ");
+            Serial.println(absoluteX);
+            Serial.print("Absolute Y: ");
+            Serial.println(absoluteY);
 
+        }
+       
         moving_completed = true;
         
-    }
-
-    if (shouldPrint) {
-        Serial.print("M1 error: ");
-        Serial.print(motor1Error);
-        Serial.print(" | M2 error: ");
-        Serial.print(motor2Error);
-        Serial.print(" | Complete: ");
-        Serial.println(moving_completed);
     }
 }
 
@@ -250,23 +214,10 @@ void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-    Serial.println("=== calculateMotorTargets() ===");
-
-    Serial.print("motor1Counts: ");
-    Serial.println(motor1Counts);
-
-    Serial.print("motor2Counts: ");
-    Serial.println(motor2Counts);
 
     // Snapshot starting position for this move (velocity profile reference point)
     startMotor1 = encoder.getMotor1Count();
     startMotor2 = encoder.getMotor2Count();
-
-    Serial.print("Current M1: ");
-    Serial.println(startMotor1);
-
-    Serial.print("Current M2: ");
-    Serial.println(startMotor2);
 
     // Convert target positions to encoder counts
     targetMotor1 = startMotor1 + motor1Counts;
@@ -277,9 +228,6 @@ void MotionController::calculateMotorTargets() {
     dist2Total = abs((float)motor2Counts);
     pathLengthCounts = encoder.convertToCounts(sqrt(targetX * targetX + targetY * targetY));
 
-    Serial.print("Path length (counts): ");
-    Serial.println(pathLengthCounts);
-
     syncIntegral = 0.0f;
 
 }
@@ -288,11 +236,6 @@ void MotionController::updateAbsolutePosition() {
     absoluteX += targetX;
     absoluteY += targetY;
 
-    Serial.println("=== Absolute Position Updated ===");
-    Serial.print("Absolute X: ");
-    Serial.println(absoluteX);
-    Serial.print("Absolute Y: ");
-    Serial.println(absoluteY);
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
@@ -342,14 +285,9 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
-    if (debugTick()) {
-        Serial.print("Homing state: ");
-        Serial.print(homingState);
-        Serial.print(" | last_pressed: ");
-        Serial.println(last_pressed);
-    }
 
     // Homing state machine
+    homingRunning = true;
     switch (homingState) {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
@@ -488,6 +426,7 @@ void MotionController::HomingFunction() {
                 absoluteY = 0.0f;
                 encoder.resetCounts();
                 homingComplete = true;
+                homingRunning = false;
             }
             break;
     }
