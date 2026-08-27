@@ -15,23 +15,26 @@ int homing_M1_Speed = 250;
 int MIN_SPEED = 85; // tuned
 int MAX_SPEED = 150; // tuned
 
-float motor1_scale = 1.0f;
-float motor2_scale = 0.80f;
-
 float Ksync = 0.5f; // tune
 
 float KsyncI = 0.05f;
 
 float syncIntegral = 0.0f;
 
+// Minimum real-world duration (ms) a sub-MIN_SPEED duty pulse must stay ON
+// to reliably overcome motor stiction and produce actual movement. Too short
+// and the motor never actually turns (permanent stall); too long and the
+// crawl becomes coarse/jerky. Bench-tune this per motor/load.
+unsigned long minPulseMs = 60; // starting guess — tune on hardware
+
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
 float Kp = 0.10f; // tune
 float Ki = 0.002f; // tune
-int positionTolerance = 100; //adjust based on testing
+int positionTolerance = 200; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 2.0f; // placeholder — tune
+float accelConstant = 1.0f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -123,6 +126,17 @@ void MotionController::update() { // This controls the motors
     if (ceiling1 < 0.0f) ceiling1 = 0.0f;
     if (ceiling2 < 0.0f) ceiling2 = 0.0f;
 
+    // Re-clamp jointly so the sync correction can't push one motor over
+    // MAX_SPEED while leaving the other alone — that broke the ratio
+    // between them exactly in the cruise phase (mid-move), causing the
+    // visible gradient/direction change on long diagonal moves.
+    float worstPostSync = max(ceiling1, ceiling2);
+    if (worstPostSync > MAX_SPEED) {
+        float postSyncScale = MAX_SPEED / worstPostSync;
+        ceiling1 *= postSyncScale;
+        ceiling2 *= postSyncScale;
+    }
+
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
         // Stop motor 1
@@ -132,6 +146,8 @@ void MotionController::update() { // This controls the motors
         // Reset integral terms
         integralMotor1 = 0;
         prevIntegralMotor1 = 0;
+        dutyAccumulator1 = 0.0f;
+        pulseActive1 = false;
     } else {
         // Integral terms for PID control
         integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
@@ -146,9 +162,34 @@ void MotionController::update() { // This controls the motors
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
 
-        // Floor/ceiling enforced on the FINAL commanded value
-        if (speedMotor1 < MIN_SPEED) speedMotor1 = MIN_SPEED;
         if (speedMotor1 > MAX_SPEED) speedMotor1 = MAX_SPEED;
+
+        if (speedMotor1 < MIN_SPEED) {
+            // Sub-deadband crawl: continuous PWM this low won't reliably turn
+            // the motor. Instead, fire full MIN_SPEED pulses and HOLD each
+            // pulse on for at least minPulseMs of real time (not just one
+            // update() tick) so the motor actually has time to overcome
+            // static friction and move, rather than twitching and stalling.
+            if (pulseActive1) {
+                speedMotor1 = MIN_SPEED;
+                if (millis() - pulseStartMillis1 >= minPulseMs) {
+                    pulseActive1 = false;
+                }
+            } else {
+                dutyAccumulator1 += speedMotor1 / MIN_SPEED;
+                if (dutyAccumulator1 >= 1.0f) {
+                    dutyAccumulator1 -= 1.0f;
+                    pulseActive1 = true;
+                    pulseStartMillis1 = millis();
+                    speedMotor1 = MIN_SPEED;
+                } else {
+                    speedMotor1 = 0.0f;
+                }
+            }
+        } else {
+            dutyAccumulator1 = 0.0f; // not in crawl mode — don't carry stale credit
+            pulseActive1 = false;
+        }
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -164,6 +205,8 @@ void MotionController::update() { // This controls the motors
         // Reset integral terms
         integralMotor2 = 0;
         prevIntegralMotor2 = 0;
+        dutyAccumulator2 = 0.0f;
+        pulseActive2 = false;
     } else {
         // Integral terms for PID control
         integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
@@ -179,9 +222,30 @@ void MotionController::update() { // This controls the motors
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
 
-        // Floor/ceiling enforced on the FINAL commanded value
-        if (speedMotor2 < MIN_SPEED) speedMotor2 = MIN_SPEED;
         if (speedMotor2 > MAX_SPEED) speedMotor2 = MAX_SPEED;
+
+        if (speedMotor2 < MIN_SPEED) {
+            // Sub-deadband crawl — see motor1 comment above.
+            if (pulseActive2) {
+                speedMotor2 = MIN_SPEED;
+                if (millis() - pulseStartMillis2 >= minPulseMs) {
+                    pulseActive2 = false;
+                }
+            } else {
+                dutyAccumulator2 += speedMotor2 / MIN_SPEED;
+                if (dutyAccumulator2 >= 1.0f) {
+                    dutyAccumulator2 -= 1.0f;
+                    pulseActive2 = true;
+                    pulseStartMillis2 = millis();
+                    speedMotor2 = MIN_SPEED;
+                } else {
+                    speedMotor2 = 0.0f;
+                }
+            }
+        } else {
+            dutyAccumulator2 = 0.0f;
+            pulseActive2 = false;
+        }
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
@@ -199,7 +263,7 @@ void MotionController::update() { // This controls the motors
             Serial.println(absoluteY);
 
         }
-       
+
         moving_completed = true;
         
     }
@@ -229,6 +293,10 @@ void MotionController::calculateMotorTargets() {
     pathLengthCounts = encoder.convertToCounts(sqrt(targetX * targetX + targetY * targetY));
 
     syncIntegral = 0.0f;
+    dutyAccumulator1 = 0.0f;
+    dutyAccumulator2 = 0.0f;
+    pulseActive1 = false;
+    pulseActive2 = false;
 
 }
 
