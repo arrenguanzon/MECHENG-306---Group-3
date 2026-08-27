@@ -439,7 +439,7 @@ float GCode::FeedrateToPWM(float feedrate) {
     // feedrate is in mm/min
     // RPM needed = feedrate / circumference (pi * 15)
     // PWM value = (RPM / 49.5) * 255
-    float pwmValue = ((feedrate / (PI * 15)) / 49.5) * 255.0f;
+    float pwmValue = ((feedrate / (PI * 14.3)) / 49.5) * 255.0f;
     if (pwmValue > 180.0f) {
         pwmValue = 180.0f;
     } else if (pwmValue < 0.0f) {

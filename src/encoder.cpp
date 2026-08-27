@@ -1,7 +1,7 @@
 #include "encoder.h"
 #include <Arduino.h> 
 
-#define MM_PER_COUNT (15.0f * PI / 8256.0f) // 1 count = 5.71 um
+#define MM_PER_COUNT (14.3f * PI / 8256.0f) // 1 count = 5.71 um
 
 Encoder::Encoder() {
     motor1Count = 0;
