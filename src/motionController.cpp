@@ -26,12 +26,12 @@ float syncIntegral = 0.0f;
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.10f; // tune
-float Ki = 0.002f; // tune
+float Kp = 0.08f; // tune
+float Ki = 0.001f; // tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 2.0f; // placeholder — tune
+float accelConstant = 2.5f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -125,8 +125,8 @@ void MotionController::update() { // This controls the motors
 
     syncIntegral += syncError;
     // Anti-windup: keep the integral term from growing unbounded
-    if (syncIntegral > 1.5f) syncIntegral = 1.5f;
-    if (syncIntegral < -1.5f) syncIntegral = -1.5f;
+    if (syncIntegral > 1.4f) syncIntegral = 1.4f;
+    if (syncIntegral < -1.4f) syncIntegral = -1.4f;
 
     float syncCorrection = Ksync * syncError + KsyncI * syncIntegral;
 
