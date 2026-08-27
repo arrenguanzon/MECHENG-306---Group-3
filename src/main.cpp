@@ -21,11 +21,16 @@
 #define ENCODER2_B 21
 
 // Switch debouncing variables
-#define DEBOUNCE_MS 25
+#define DEBOUNCE_MS 50
 unsigned long last_sB_time = 0;
 unsigned long last_sT_time = 0;
 unsigned long last_sL_time = 0;
 unsigned long last_sR_time = 0;
+
+// Fixed-frequency control loop — decoupled from Serial I/O timing
+#define CONTROL_FREQUENCY_HZ 100
+#define CONTROL_INTERVAL_MS (1000UL / CONTROL_FREQUENCY_HZ)
+unsigned long lastControlUpdate = 0;
 
 
 volatile MotionController::SwitchState last_pressed =
@@ -117,7 +122,11 @@ void loop(){
             user_input += c;
         }
     }
-    fsm.update();
+    unsigned long now = millis();
+    if (now - lastControlUpdate >= CONTROL_INTERVAL_MS) {
+        lastControlUpdate = now;
+        fsm.update();
+    }
 }
 
 // Limit switch interrupt service routines

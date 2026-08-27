@@ -1,6 +1,9 @@
+
 #ifndef GCODE_HPP
 #define GCODE_HPP
 #include <Arduino.h>
+
+
 
 
 class GCode {
@@ -25,6 +28,7 @@ class GCode {
         float& absoluteY;
     public:
         GCode(String &rc, float& abs_x, float& abs_y);
+        float FeedrateToPWM(float feedrate);
         // Parser and Helper Functions
         void tokeniseInput(const String &rc);
         bool parseValue(const String &token); // Function also checks if input is valid, returns true if valid, false if not
@@ -38,7 +42,13 @@ class GCode {
         bool isValid() const;
 
 
+
+
 };
+
+
+
+
 
 
 

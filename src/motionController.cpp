@@ -8,17 +8,26 @@
 #define motor2_pin 4
 
 // Homing base speeds
-int homing_M2_Speed = 192;
+int homing_M2_Speed = 238;
 int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
-int MIN_SPEED = 80; // tuned
+int MIN_SPEED = 85; // tuned
 int MAX_SPEED = 200; // tuned
 
+float motor1_scale = 1.0f;
+float motor2_scale = 0.80f;
+
+float Ksync = 0.5f; // tune
+
+float KsyncI = 0.05f;
+
+float syncIntegral = 0.0f;
+
 // PI Variables
-// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 80)
-float Kp = 0.1f; // tune
-float Ki = 0.05f; // tune
+// Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
+float Kp = 0.10f; // tune
+float Ki = 0.002f; // tune
 int positionTolerance = 100; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
@@ -52,11 +61,7 @@ void MotionController::setTarget(float x, float y, float speed) {
     Serial.print("targetY: ");
     Serial.println(targetY);
     Serial.print("speed: ");
-    if(this->speed < 80.0f) {
-        Serial.println("80.00");
-    } else {
-        Serial.println(this->speed);
-    }
+    Serial.println(this->speed);
 
     calculateMotorTargets();
 
@@ -88,25 +93,65 @@ void MotionController::update() { // This controls the motors
     float dy = (float)((currentMotor2 - startMotor2) - (currentMotor1 - startMotor1)) / 2.0f;
     float dPath = sqrt(dx * dx + dy * dy);
 
-    float vPath = calculateVelocityCeiling(dPath);
+    float remainingPath = pathLengthCounts - dPath;
+    if (remainingPath < 0.0f) remainingPath = 0.0f;
+
+    float vAccel = calculateVelocityCeiling(dPath);        // ramps up from MIN_SPEED
+    float vDecel = calculateVelocityCeiling(remainingPath); // ramps down toward MIN_SPEED near target
+    float vPath = min(vAccel, vDecel);
 
     float ceiling1 = speed;
     float ceiling2 = speed;
     if (pathLengthCounts > 0.0f) {
         ceiling1 = vPath * (dist1Total / pathLengthCounts);
         ceiling2 = vPath * (dist2Total / pathLengthCounts);
-        if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
-        if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
+
+        float worst = max(ceiling1, ceiling2);
+        if (worst > MAX_SPEED) {
+            float scale = MAX_SPEED / worst;
+            ceiling1 *= scale;
+            ceiling2 *= scale;
+        }
     }
 
-    Serial.print("dPath: ");
-    Serial.print(dPath);
-    Serial.print(" | vPath: ");
-    Serial.print(vPath);
-    Serial.print(" | ceiling1: ");
-    Serial.print(ceiling1);
-    Serial.print(" | ceiling2: ");
-    Serial.println(ceiling2);
+    // --- Real-time sync correction ---
+    // progress1/progress2: fraction (0..1) of each motor's OWN total distance
+    // covered so far. Comparing fractions (not raw counts) is what makes this
+    // work correctly even when dist1Total != dist2Total, e.g. on diagonals.
+    float progress1 = (dist1Total > 0.0f) ? (float)abs(currentMotor1 - startMotor1) / dist1Total : 1.0f;
+    float progress2 = (dist2Total > 0.0f) ? (float)abs(currentMotor2 - startMotor2) / dist2Total : 1.0f;
+
+    float syncError = progress1 - progress2;
+
+    syncIntegral += syncError;
+    // Anti-windup: keep the integral term from growing unbounded
+    if (syncIntegral > 1.5f) syncIntegral = 1.5f;
+    if (syncIntegral < -1.5f) syncIntegral = -1.5f;
+
+    float syncCorrection = Ksync * syncError + KsyncI * syncIntegral;
+
+    ceiling1 *= (1.0f - syncCorrection);
+    ceiling2 *= (1.0f + syncCorrection);
+
+    if (ceiling1 < 0.0f) ceiling1 = 0.0f;
+    if (ceiling2 < 0.0f) ceiling2 = 0.0f;
+
+    bool shouldPrint = debugTick();
+
+    if (shouldPrint) {
+        Serial.print("dPath: ");
+        Serial.print(dPath);
+        Serial.print(" | vPath: ");
+        Serial.print(vPath);
+        Serial.print(" | progress1: ");
+        Serial.print(progress1);
+        Serial.print(" | progress2: ");
+        Serial.print(progress2);
+        Serial.print(" | ceiling1: ");
+        Serial.print(ceiling1);
+        Serial.print(" | ceiling2: ");
+        Serial.println(ceiling2);
+    }
 
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
@@ -121,7 +166,7 @@ void MotionController::update() { // This controls the motors
         // Integral terms for PID control
         integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
         // Motor output
-        float speedMotor1 = abs(Kp *   motor1Error + integralMotor1); // must be positive for analogWrite
+        float speedMotor1 = abs(Kp * motor1Error + integralMotor1); // must be positive for analogWrite
 
         // Integral clamping to prevent windup
         if (speedMotor1 > ceiling1) {
@@ -130,9 +175,10 @@ void MotionController::update() { // This controls the motors
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
-        if (speedMotor1 < MIN_SPEED) {
-            speedMotor1 = MIN_SPEED;
-        }
+
+        // Floor/ceiling enforced on the FINAL commanded value
+        if (speedMotor1 < MIN_SPEED) speedMotor1 = MIN_SPEED;
+        if (speedMotor1 > MAX_SPEED) speedMotor1 = MAX_SPEED;
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -162,9 +208,10 @@ void MotionController::update() { // This controls the motors
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
-        if (speedMotor2 < MIN_SPEED) {
-            speedMotor2 = MIN_SPEED;
-        }
+
+        // Floor/ceiling enforced on the FINAL commanded value
+        if (speedMotor2 < MIN_SPEED) speedMotor2 = MIN_SPEED;
+        if (speedMotor2 > MAX_SPEED) speedMotor2 = MAX_SPEED;
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
@@ -174,26 +221,25 @@ void MotionController::update() { // This controls the motors
     if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
         updateAbsolutePosition();
 
-        if(!homingRunning){
-            Serial.println("=== Movement Complete ===");
-            Serial.print("Absolute X: ");
-            Serial.println(absoluteX);
-            Serial.print("Absolute Y: ");
-            Serial.println(absoluteY);
-        }
-        
+        Serial.println("=== Movement Complete ===");
+        Serial.print("Absolute X: ");
+        Serial.println(absoluteX);
+        Serial.print("Absolute Y: ");
+        Serial.println(absoluteY);
+
         moving_completed = true;
         
     }
 
-    Serial.print("M1 error: ");
-    Serial.print(motor1Error);
-    Serial.print(" | M2 error: ");
-    Serial.print(motor2Error);
-    Serial.print(" | Complete: ");
-    Serial.println(moving_completed);
+    if (shouldPrint) {
+        Serial.print("M1 error: ");
+        Serial.print(motor1Error);
+        Serial.print(" | M2 error: ");
+        Serial.print(motor2Error);
+        Serial.print(" | Complete: ");
+        Serial.println(moving_completed);
+    }
 }
-
 
 
 bool MotionController::isCompleted() const {
@@ -234,29 +280,54 @@ void MotionController::calculateMotorTargets() {
     Serial.print("Path length (counts): ");
     Serial.println(pathLengthCounts);
 
+    syncIntegral = 0.0f;
+
 }
 
 void MotionController::updateAbsolutePosition() {
     absoluteX += targetX;
     absoluteY += targetY;
 
-    if(!homingRunning){
-        Serial.println("=== Absolute Position Updated ===");
-        Serial.print("Absolute X: ");
-        Serial.println(absoluteX);
-        Serial.print("Absolute Y: ");
-        Serial.println(absoluteY);
-    }
+    Serial.println("=== Absolute Position Updated ===");
+    Serial.print("Absolute X: ");
+    Serial.println(absoluteX);
+    Serial.print("Absolute Y: ");
+    Serial.println(absoluteY);
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
-    float v = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
-        if (v > speed) {
-            v = speed;
-        }
-        return v;
+    // Accel phase: ramps up from MIN_SPEED as distance traveled increases
+    float accelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * distanceTraveled);
+
+
+    // Decel phase: ramps down toward MIN_SPEED as distance remaining shrinks
+    float remaining = pathLengthCounts - distanceTraveled;
+    if (remaining < 0.0f) {
+        remaining = 0.0f;
+    }
+    float decelPhase = sqrt(MIN_SPEED * MIN_SPEED + 2.0f * accelConstant * remaining);
+
+
+    // Whichever phase is more restrictive at this point in the move wins
+    float v = accelPhase;
+    if (decelPhase < v) {
+        v = decelPhase;
+    }
+    if (v > speed) {
+        v = speed;
+    }
+    return v;
+
 }
 
+bool MotionController::debugTick() {
+    unsigned long now = millis();
+    if (now - lastDebugPrint >= DEBUG_PRINT_INTERVAL_MS) {
+        lastDebugPrint = now;
+        return true;
+    }
+    return false;
+}
 
 // State functions
 void MotionController::Idle() {
@@ -271,18 +342,19 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
-    Serial.print("Homing state: ");
-    Serial.print(homingState);
-    Serial.print(" | last_pressed: ");
-    Serial.println(last_pressed);
-    homingRunning = true;
+    if (debugTick()) {
+        Serial.print("Homing state: ");
+        Serial.print(homingState);
+        Serial.print(" | last_pressed: ");
+        Serial.println(last_pressed);
+    }
 
     // Homing state machine
     switch (homingState) {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
                 last_pressed = START;
-                setTarget(0.0f, 5.0f, 80.0f);
+                setTarget(0.0f, 5.0f, 75.0f);
                 homingState = BOTTOM_EDGE_CASE_WAIT;
             }else if (last_pressed == sL) {
                 last_pressed = START;
@@ -315,6 +387,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_LEFT2;
             }
             break;
@@ -328,9 +401,9 @@ void MotionController::HomingFunction() {
             } else {
                 digitalWrite(motor1_pin, LOW);
                 digitalWrite(motor2_pin, LOW);
-                analogWrite(enable1_pin, 104);
-                analogWrite(enable2_pin, 80);
-                //Serial.println("Moving to left2");
+                analogWrite(enable1_pin, 98);
+                analogWrite(enable2_pin, 75);
+
             }
             break;
        
@@ -344,6 +417,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_BOTTOM;
             }
             break;
@@ -372,6 +446,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_BOTTOM2;
             }
             break;
@@ -384,9 +459,9 @@ void MotionController::HomingFunction() {
             } else {
                 digitalWrite(motor1_pin, HIGH);
                 digitalWrite(motor2_pin, LOW);
-                analogWrite(enable1_pin, 104);
-                analogWrite(enable2_pin, 80);
-                Serial.println("Moving to bottom2");
+                analogWrite(enable1_pin, 98);
+                analogWrite(enable2_pin, 75);
+                Serial.print("MOVE TO BOTTOM 2");
             }
             break;
 
@@ -399,6 +474,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = HOMING_COMPLETE;
             }
             break;
@@ -413,7 +489,6 @@ void MotionController::HomingFunction() {
                 absoluteY = 0.0f;
                 encoder.resetCounts();
                 homingComplete = true;
-                homingRunning = false;
             }
             break;
     }
