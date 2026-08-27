@@ -212,6 +212,11 @@ bool GCode::parseValue(const String &token) {
         value = -value;
     }
 
+    if(decimalFound){ 
+        value = round(value);
+    }
+
+
     // Store the value
     if (type == 'X') {
         if (has_x) {
