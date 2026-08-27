@@ -354,6 +354,8 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 98);
                 analogWrite(enable2_pin, 75);
+
+                Serial.print("MOVE TO LEFT 2 YES ALKJFALKJDSHFLDSAHFLADSHFLDAHuyriueyriuytireyo9utoreutoieuteuFKDHFDFJDSAFAS");
             }
             break;
        
@@ -409,6 +411,7 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 98);
                 analogWrite(enable2_pin, 75);
+                Serial.print("MOVE TO BOTTOM 2");
             }
             break;
 
