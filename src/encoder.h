@@ -9,9 +9,11 @@ class Encoder {
     private:
         volatile long motor1Count;
         volatile long motor2Count;
+
     public:
         Encoder();
         long convertToCounts(float distanceInMM);
+        long convertToDistance(float counts);
         long getMotor1Count();
         long getMotor2Count();
         void incrementMotor1Count();

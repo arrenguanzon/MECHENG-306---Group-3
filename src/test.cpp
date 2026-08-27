@@ -1,4 +1,5 @@
 // #include <Arduino.h>
+// #include "encoder.h"
 
 
 // #define motor1_pin 7
@@ -17,11 +18,9 @@
 // #define ENCODER2_A 20
 // #define ENCODER2_B 21
 
-// #define DEBOUNCE_MS 25
 
-
-// // int M2_speed = 75;
-// // int M1_speed = 75;//M2_speed * 1.15;
+// int M2_speed = 75;
+// int M1_speed = M2_speed * 1.3;
 
 
 // //typedef enum SwitchState {sT, sB, sL, sR, START} SwitchState;
@@ -38,6 +37,7 @@
 // void Homing();
 // void HomingIdle();
 
+
 // void setup()
 // {
 //     // Set up motor pins
@@ -50,6 +50,16 @@
 //     pinMode(switch_bottom, INPUT_PULLUP);
 //     pinMode(switch_left, INPUT_PULLUP);
 //     pinMode(switch_right, INPUT_PULLUP);
+
+//     pinMode(ENCODER1_A, INPUT_PULLUP);
+//     pinMode(ENCODER1_B, INPUT_PULLUP);
+//     pinMode(ENCODER2_A, INPUT_PULLUP);
+//     pinMode(ENCODER2_B, INPUT_PULLUP);
+
+//     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), ENCODER1AISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER1_B), ENCODER1BISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
+//     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
 
 //     // attachInterrupt(digitalPinToInterrupt(switch_bottom), BottomISR, FALLING);
 //     //Top switch
@@ -81,56 +91,11 @@
 //     analogWrite(enable2_pin, 0);
 // }
 
-// volatile unsigned long last_sT_time = 0;
-// volatile unsigned long last_sB_time = 0;
-// volatile unsigned long last_sL_time = 0;
-// volatile unsigned long last_sR_time = 0;
-
-// // Independent flags, one per switch, instead of a single shared "last_pressed"
-// volatile bool sT_flag = false;
-// volatile bool sB_flag = false;
-// volatile bool sL_flag = false;
-// volatile bool sR_flag = false;
-
-// HomingState homingState = MOVE_TO_LEFT;
-
 // // ISRs for the limit switches
-// void BottomISR() {
-//     //Serial.println("BOTTOM flag set");
-//     unsigned long now = millis();
-//     if (now - last_sB_time >= DEBOUNCE_MS) {
-//         sB_flag = true;
-//         last_sB_time = now;
-//     }
-// }
-
-// ISR(PCINT0_vect) {
-//     //Serial.println("TOP flag set");
-//     unsigned long now = millis();
-//     if (digitalRead(switch_top) == LOW && (now - last_sT_time >= DEBOUNCE_MS)) {
-//         sT_flag = true;
-//         last_sT_time = now;
-//     }
-// }
-
-// ISR(PCINT2_vect) {
-//    // Serial.println("RIGHT flag set");
-//     unsigned long now = millis();
-//     if ((digitalRead(switch_right) == LOW && (now - last_sR_time >= DEBOUNCE_MS)) ) { {
-//         sR_flag = true;
-//         last_sR_time = now;
-//     }
-// }
-// }
-
-// void LeftISR() {
-//     //Serial.println("LEFT flag set");
-//     unsigned long now = millis();
-//     if (now - last_sL_time >= DEBOUNCE_MS) {
-//         sL_flag = true;
-//         last_sL_time = now;
-//     }
-// }
+// void BottomISR() { last_pressed = sB; }
+// ISR(PCINT0_vect) { last_pressed = sT; }
+// ISR(PCINT2_vect) { last_pressed = sR; }
+// void LeftISR()   { last_pressed = sL; }
 
 // void loop() {
 //     Homing();
@@ -147,31 +112,21 @@
 // // }
 
 // void Homing() {
+//     if (!DelayElapsed()) return;
 
 //     switch (homingState) {
 
 //         case MOVE_TO_LEFT:
-//             if (sB_flag) {
-//             //if (last_pressed == sB) {
-//                 sB_flag = false;
+//             if (last_pressed == sB) {
 //                 digitalWrite(motor1_pin, LOW);
 //                 digitalWrite(motor2_pin, HIGH);
 //                 analogWrite(enable1_pin, M1_speed);
 //                 analogWrite(enable2_pin, M2_speed);
-//                 delay(1000);
+//                 StartDelay(1000);
 //                 homingState = BOTTOM_EDGE_CASE_WAIT;
-//             } else if (sT_flag) {
-//                 sT_flag = false;
-//                 digitalWrite(motor1_pin, HIGH);
-//                 digitalWrite(motor2_pin, LOW);
-//                 analogWrite(enable1_pin, M1_speed);
-//                 analogWrite(enable2_pin, M2_speed);
-//                 delay(1000);
-//                 homingState = TOP_EDGE_CASE_WAIT;
-//             }else if (sL_flag) {
-//             //} else if (last_pressed == sL) {
-//                 sL_flag = false;
+//             } else if (last_pressed == sL) {
 //                 HomingIdle();
+//                 StartDelay(1000);
 //                 homingState = MOVE_RIGHT;
 //             } else {
 //                 digitalWrite(motor1_pin, LOW);
@@ -182,12 +137,6 @@
 //             break;
 
 //         case BOTTOM_EDGE_CASE_WAIT:
-//             //last_pressed = START;
-//             homingState = MOVE_TO_LEFT;
-//             break;
-        
-//         case TOP_EDGE_CASE_WAIT:
-//             //last_pressed = START;
 //             homingState = MOVE_TO_LEFT;
 //             break;
 
@@ -197,21 +146,21 @@
 //             digitalWrite(motor2_pin, HIGH);
 //             analogWrite(enable1_pin, M1_speed);
 //             analogWrite(enable2_pin, M2_speed);
-//             delay(500);
+//             StartDelay(500);
 //             homingState = WAIT_AFTER_RIGHT;
 //             break;
 
 //         case WAIT_AFTER_RIGHT:
 //             // delay elapsed, idle briefly then move to bottom
 //             HomingIdle();
+//             StartDelay(1000);
 //             homingState = MOVE_TO_BOTTOM;
 //             break;
 
 //         case MOVE_TO_BOTTOM:
-//             if (sB_flag) {
-//             //if (last_pressed == sB) {
-//                 sB_flag = false;
+//             if (last_pressed == sB) {
 //                 HomingIdle();
+//                 StartDelay(1000);
 //                 homingState = MOVE_UP;
 //             } else {
 //                 digitalWrite(motor1_pin, HIGH);
@@ -227,12 +176,136 @@
 //             digitalWrite(motor2_pin, HIGH);
 //             analogWrite(enable1_pin, M1_speed);
 //             analogWrite(enable2_pin, M2_speed);
-//             delay(500);
+//             StartDelay(500);
 //             homingState = HOMING_COMPLETE;
 //             break;
 
 //         case HOMING_COMPLETE:
+//         default:
+//             // one-time settle happens on entry below, then this becomes a no-op
 //             HomingIdle();
 //             break;
 //     }
 // }
+
+
+
+// //------------------------------------------
+
+// // unsigned long motorStartTime;
+// // int delayTime = 0;
+// // bool delayActive = 0;
+// // int alreadyDelayed = 0;
+
+// // void Delay(int delayTime){
+// //     if (millis() - motorStartTime >= delayTime) {
+// //         delayActive = 0;
+// //     }
+// // }
+
+// // void HomingIdle(){
+// //     analogWrite(enable1_pin, 0);
+// //     analogWrite(enable2_pin, 0);
+// //     delayTime = 1000;
+// //     motorStartTime = millis();
+// //     delayActive = 1;
+// // }
+
+// // void BottomISR(){
+// //     last_pressed = sB;
+// // }
+
+// // ISR(PCINT0_vect) {
+// //    last_pressed = sT;
+// // }
+
+// // ISR(PCINT2_vect) {
+// //     last_pressed = sR;
+// // }
+
+// // void LeftISR(){
+// //     last_pressed = sL;
+// // }
+
+
+
+// // void loop(){
+// //     if (millis() - motorStartTime >= delayTime & delayActive == 0) {
+// //         Homing();
+// //     }
+// //     Delay(delayTime);
+// // }
+
+
+// // // void loop()
+// // // {
+// // //     digitalWrite(motor1_pin, LOW);
+// // //     digitalWrite(motor2_pin, LOW);
+// // //     analogWrite(enable1_pin, 100);
+// // //     analogWrite(enable2_pin, 100);
+// // // }
+
+
+// // void Homing(){
+// //     while(last_pressed != sL){
+// //         if(last_pressed == sB){ // edge case for starting at bottom switch
+// //             digitalWrite(motor1_pin, LOW);
+// //             digitalWrite(motor2_pin, HIGH);
+// //             analogWrite(enable1_pin, M1_speed);
+// //             analogWrite(enable2_pin, M2_speed);
+// //             delayTime = 1000;
+// //             motorStartTime = millis();
+// //             delayActive = 1; 
+// //             return;
+// //         }
+// //         // move motors to the left until the left switch is pressed
+// //         digitalWrite(motor1_pin, LOW);
+// //         digitalWrite(motor2_pin, LOW);
+// //         analogWrite(enable1_pin, M1_speed);
+// //         analogWrite(enable2_pin, M2_speed);
+// //     }
+    
+// //     if(alreadyDelayed == 0){
+// //         delayTime = 1000;
+// //         motorStartTime = millis();
+// //         delayActive = 1; 
+// //         alreadyDelayed = 1;
+// //         return;
+// //     }
+
+// //     // move motors to the right
+// //     digitalWrite(motor1_pin, HIGH);
+// //     digitalWrite(motor2_pin, HIGH);
+// //     analogWrite(enable1_pin, M1_speed);
+// //     analogWrite(enable2_pin, M2_speed);
+
+// //     if(alreadyDelayed == 1){
+// //         delayTime = 500;
+// //         motorStartTime = millis();
+// //         delayActive = 1; 
+// //         alreadyDelayed = 2;
+// //         return;
+// //     }
+
+// //     if(alreadyDelayed == 2){
+// //         alreadyDelayed = 3;
+// //         HomingIdle();
+// //         return;
+// //     }
+
+// //     while(last_pressed != sB){ // move motors down until the bottom switch is pressed
+// //         Serial.println(last_pressed);
+// //         digitalWrite(motor1_pin, HIGH);
+// //         digitalWrite(motor2_pin, LOW);
+// //         analogWrite(enable1_pin, M1_speed);
+// //         analogWrite(enable2_pin, M2_speed);
+// //     }
+
+// //     if(alreadyDelayed == 3){
+// //         HomingIdle();
+// //         delayTime = 0;
+// //         delayActive = 0;
+// //     }
+// //     //switchcase
+// //     while(1);
+// // }
