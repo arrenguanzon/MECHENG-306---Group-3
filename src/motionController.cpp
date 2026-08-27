@@ -333,6 +333,7 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 104);
                 analogWrite(enable2_pin, 80);
+                //Serial.println("Moving to left2");
             }
             break;
        
@@ -388,6 +389,7 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 104);
                 analogWrite(enable2_pin, 80);
+                Serial.println("Moving to bottom2");
             }
             break;
 

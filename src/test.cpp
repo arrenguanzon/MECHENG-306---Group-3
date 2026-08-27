@@ -32,8 +32,8 @@
 // //function prototypes
 
 // void TopISR();
-// // void BottomISR();
-// // void LeftISR();
+// void BottomISR();
+// void LeftISR();
 // void RightISR();
 // void Homing();
 // void HomingIdle();
@@ -132,19 +132,19 @@
 //     }
 // }
 
-// // void loop() {
-// //     Homing();
-// // }
-
-// int M2_speed = 225;
-// int M1_speed = 255;
-
 // void loop() {
-//     digitalWrite(motor1_pin, 0);
-//     digitalWrite(motor2_pin, HIGH);
-//     analogWrite(enable1_pin, 0);
-//     analogWrite(enable2_pin, 80);
+//     Homing();
 // }
+
+// int M2_speed = 110;
+// int M1_speed = 110;
+
+// // void loop() {
+// //     digitalWrite(motor1_pin, HIGH);
+// //     digitalWrite(motor2_pin, HIGH);
+// //     analogWrite(enable1_pin, 0);
+// //     analogWrite(enable2_pin, M2_speed);
+// // }
 
 // void Homing() {
 
