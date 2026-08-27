@@ -117,6 +117,16 @@ void loop(){
                 user_input = "";
             }
         }
+        // Handle Backspace (ASCII 8) and Delete (ASCII 127)
+        else if (c == '\b' || c == (char)127) {
+            if (user_input.length() > 0) {
+                // Remove the last character from the buffer string
+                user_input.remove(user_input.length() - 1);
+                
+                // Erase the character visually from the serial terminal
+                Serial.print("\b \b");
+            }
+        }
         else {
             Serial.print(c);   // Echo character immediately
             user_input += c;
@@ -127,6 +137,7 @@ void loop(){
         lastControlUpdate = now;
         fsm.update();
     }
+    
 }
 
 // Limit switch interrupt service routines
