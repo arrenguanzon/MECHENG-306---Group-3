@@ -3,7 +3,6 @@
 #include "gcode.h"
 #include "fsm.h"
 #include "motionController.h"
-#include "homing.h"
 
 #define motor1_pin 7
 #define enable1_pin 6
@@ -22,7 +21,7 @@
 #define ENCODER2_B 21
 
 // Switch debouncing variables
-#define DEBOUNCE_MS 25
+#define DEBOUNCE_MS 50
 unsigned long last_sB_time = 0;
 unsigned long last_sT_time = 0;
 unsigned long last_sL_time = 0;
@@ -48,14 +47,17 @@ String user_input = "";
 FSM fsm(motionController, last_pressed);
 
 //function prototypes
+void TopISR();
 void BottomISR();
 void LeftISR();
-void TopISR();
 void RightISR();
+void Homing();
 void ENCODER1AISR();
 void ENCODER1BISR();
 void ENCODER2AISR();
 void ENCODER2BISR();
+
+// encoder encoderObject;
 
 
 void setup()
@@ -93,7 +95,6 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
 
-
 }
 
 void loop(){
@@ -122,7 +123,7 @@ void loop(){
         }
     }
     unsigned long now = millis();
-    if (now - lastControlUpdate >= CONTROL_INTERVAL_MS) { // Control loop runs at CONTROL_FREQUENCY_HZ = 100 Hz
+    if (now - lastControlUpdate >= CONTROL_INTERVAL_MS) {
         lastControlUpdate = now;
         fsm.update();
     }
@@ -175,9 +176,9 @@ void ENCODER1AISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A == B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 
@@ -186,9 +187,9 @@ void ENCODER1BISR() {
     bool B = digitalRead(ENCODER1_B);
 
     if (A != B) {
-        encoder.incrementMotor1Count();
-    } else {
         encoder.decrementMotor1Count();
+    } else {
+        encoder.incrementMotor1Count();
     }
 }
 

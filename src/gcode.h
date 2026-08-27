@@ -54,4 +54,3 @@ class GCode {
 
 
 #endif //GCODE_HPP
-
