@@ -13,7 +13,7 @@ int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
 int MIN_SPEED = 85; // tuned
-int MAX_SPEED = 200; // tuned
+int MAX_SPEED = 180; // tuned
 
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
@@ -79,17 +79,17 @@ void MotionController::update() { // This controls the motors
     long motor1Error = targetMotor1 - currentMotor1;
     long motor2Error = targetMotor2 - currentMotor2;
 
-    // --- Velocity profile: compute the synchronized ceiling for this tick ---
+    // --- Velocity profile: compute the synchronized ceiling for this tick --- (in encoders counts)
     float dx = (float)((currentMotor1 - startMotor1) + (currentMotor2 - startMotor2)) / 2.0f;
     float dy = (float)((currentMotor2 - startMotor2) - (currentMotor1 - startMotor1)) / 2.0f;
-    float dPath = sqrt(dx * dx + dy * dy);
+    float dPath = sqrt(dx * dx + dy * dy); // Pythagoras (the hypotenuse)
 
-    float vPath = calculateVelocityCeiling(dPath);
+    float vPath = calculateVelocityCeiling(dPath); // Velocity path based on the hypotenuse
 
     float ceiling1 = speed;
     float ceiling2 = speed;
     if (pathLengthCounts > 0.0f) {
-        ceiling1 = vPath * (dist1Total / pathLengthCounts);
+        ceiling1 = vPath * (dist1Total / pathLengthCounts); // vpath * ratio of how much motor 1 must move to the total path length
         ceiling2 = vPath * (dist2Total / pathLengthCounts);
         if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
         if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
@@ -339,6 +339,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_LEFT2;
             }
             break;
@@ -355,7 +356,6 @@ void MotionController::HomingFunction() {
                 analogWrite(enable1_pin, 98);
                 analogWrite(enable2_pin, 75);
 
-                Serial.print("MOVE TO LEFT 2 YES ALKJFALKJDSHFLDSAHFLADSHFLDAHuyriueyriuytireyo9utoreutoieuteuFKDHFDFJDSAFAS");
             }
             break;
        
@@ -369,6 +369,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_BOTTOM;
             }
             break;
@@ -397,6 +398,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = MOVE_TO_BOTTOM2;
             }
             break;
@@ -411,7 +413,6 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 98);
                 analogWrite(enable2_pin, 75);
-                Serial.print("MOVE TO BOTTOM 2");
             }
             break;
 
@@ -424,6 +425,7 @@ void MotionController::HomingFunction() {
             update();
             if (isCompleted()) {
                 HomingIdle();
+                last_pressed = START;
                 homingState = HOMING_COMPLETE;
             }
             break;
