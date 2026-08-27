@@ -25,10 +25,16 @@ int MAX_SPEED = 200; // tuned
 // the existing "PWM-ish" profile units, measured speed is counts/sec), so
 // these are placeholders to be re-tuned on the bench from scratch.
 float Kff = 0.6f; // tune - feedforward: maps desired profile speed directly to PWM output
-float Kp = 0.0f; // tune - feedback: corrects residual speed error the feedforward misses
+float Kp = 0.1f; // tune - feedback: corrects residual speed error the feedforward misses
 float Ki = 0.0f; // tune
 int positionTolerance = 100; //adjust based on testing
 
+// Converts measured encoder speed (counts/sec) into the same "profile speed"
+// units that desiredSpeed / ceiling / Kff already operate in. Calibrated
+// separately per motor — motor2 has been consistently reading faster than
+// motor1 for the same commanded speed (see bench data, ~10.3 vs ~12.2).
+float motor1CountsPerSecPerSpeedUnit = 10.3f; // from single-axis bench test
+float motor2CountsPerSecPerSpeedUnit = 12.2f; // from single-axis bench test
 
 // Fallback dt (seconds) used only if millis() ever returns a non-positive
 // delta (e.g. the very first tick, or a rollover edge case). Matches
@@ -187,8 +193,8 @@ void MotionController::update() { // This controls the motors
         // shrinking (via calculateVelocityCeiling) — this loop's job is just
         // to track that setpoint.
         float desiredSpeed1 = (motor1Error > 0) ? ceiling1 : -ceiling1;
-        float speedError1 = desiredSpeed1 - actualSpeed1;
-
+        float actualSpeed1Scaled = actualSpeed1 / motor1CountsPerSecPerSpeedUnit;
+        float speedError1 = desiredSpeed1 - actualSpeed1Scaled;
 
         // Feedforward: predict most of the required PWM directly from the
         // desired profile speed, so the PI term only has to correct the
@@ -196,20 +202,19 @@ void MotionController::update() { // This controls the motors
         // the whole output up from zero via the integral.
         float feedforwardMotor1 = Kff * desiredSpeed1;
 
-
         // Integral term for PI control, scaled by dt so Ki is independent of loop rate
         integralMotor1 = prevIntegralMotor1 + Ki * speedError1 * dt;
         // Motor output: feedforward + PI correction
         float speedMotor1 = abs(feedforwardMotor1 + Kp * speedError1 + integralMotor1); // must be positive for analogWrite
 
-
         if (shouldPrint) {
             Serial.print("FF1: ");
             Serial.print(feedforwardMotor1);
+            Serial.print(" | actualSpeed1Scaled: ");
+            Serial.print(actualSpeed1Scaled);
             Serial.print(" | speedError1: ");
             Serial.println(speedError1);
         }
-
 
         // Integral clamping to prevent windup
         if (speedMotor1 > ceiling1) {
@@ -221,7 +226,6 @@ void MotionController::update() { // This controls the motors
         if (speedMotor1 < MIN_SPEED) {
             speedMotor1 = MIN_SPEED;
         }
-
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -240,30 +244,33 @@ void MotionController::update() { // This controls the motors
         integralMotor2 = 0;
         prevIntegralMotor2 = 0;
     } else {
-        // Desired speed is the profile ceiling, signed by direction of travel
+        // Desired speed is the profile ceiling, signed by direction of travel.
+        // Deceleration near the target is already handled by ceiling1
+        // shrinking (via calculateVelocityCeiling) — this loop's job is just
+        // to track that setpoint.
         float desiredSpeed2 = (motor2Error > 0) ? ceiling2 : -ceiling2;
-        float speedError2 = desiredSpeed2 - actualSpeed2;
+        float actualSpeed2Scaled = actualSpeed2 / motor2CountsPerSecPerSpeedUnit;
+        float speedError2 = desiredSpeed2 - actualSpeed2Scaled;
 
-
-        // Feedforward: same reasoning as motor 1
+        // Feedforward: predict most of the required PWM directly from the
+        // desired profile speed, so the PI term only has to correct the
+        // residual (friction, load, modelling error) instead of building
+        // the whole output up from zero via the integral.
         float feedforwardMotor2 = Kff * desiredSpeed2;
-
 
         // Integral term for PI control, scaled by dt so Ki is independent of loop rate
         integralMotor2 = prevIntegralMotor2 + Ki * speedError2 * dt;
-
-
-        // Calculate motor speed outputs: feedforward + PI correction
-        float speedMotor2 = abs(feedforwardMotor2 + Kp * speedError2 + integralMotor2);
-
+        // Motor output: feedforward + PI correction
+        float speedMotor2 = abs(feedforwardMotor2 + Kp * speedError2 + integralMotor2); // must be positive for analogWrite
 
         if (shouldPrint) {
             Serial.print("FF2: ");
             Serial.print(feedforwardMotor2);
+            Serial.print(" | actualSpeed2Scaled: ");
+            Serial.print(actualSpeed2Scaled);
             Serial.print(" | speedError2: ");
             Serial.println(speedError2);
         }
-
 
         // Integral clamping to prevent windup
         if (speedMotor2 > ceiling2) {
@@ -275,7 +282,6 @@ void MotionController::update() { // This controls the motors
         if (speedMotor2 < MIN_SPEED) {
             speedMotor2 = MIN_SPEED;
         }
-
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
