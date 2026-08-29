@@ -15,23 +15,26 @@ int homing_M1_Speed = 250;
 int MIN_SPEED = 85; // tuned
 int MAX_SPEED = 150; // tuned
 
-float motor1_scale = 1.0f;
-float motor2_scale = 0.80f;
-
 float Ksync = 0.5f; // tune
 
 float KsyncI = 0.05f;
 
 float syncIntegral = 0.0f;
 
+// Minimum real-world duration (ms) a sub-MIN_SPEED duty pulse must stay ON
+// to reliably overcome motor stiction and produce actual movement. Too short
+// and the motor never actually turns (permanent stall); too long and the
+// crawl becomes coarse/jerky. Bench-tune this per motor/load.
+unsigned long minPulseMs = 60; // starting guess — tune on hardware
+
 // PI Variables
 // Controller gains (kp + ki > 0.05 for error = 100mm [~3000 encoder counts] to output min. speed of 75)
-float Kp = 0.08f; // tune
-float Ki = 0.001f; // tune
-int positionTolerance = 100; //adjust based on testing
+float Kp = 0.10f; // tune
+float Ki = 0.002f; // tune
+int positionTolerance = 200; //adjust based on testing
 
 // Velocity profile acceleration constant (tune on the bench alongside Kp/Ki)
-float accelConstant = 2.5f; // placeholder — tune
+float accelConstant = 1.0f; // placeholder — tune
 
 MotionController::MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed) : encoder(encoder), absoluteX(absoluteX), absoluteY(absoluteY), last_pressed(last_pressed) {
     targetX = 0.0f;
@@ -55,20 +58,7 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetY = y;
     this->speed = speed;
 
-    Serial.println("=== setTarget() ===");
-    Serial.print("targetX: ");
-    Serial.println(targetX);
-    Serial.print("targetY: ");
-    Serial.println(targetY);
-    Serial.print("speed: ");
-    Serial.println(this->speed);
-
     calculateMotorTargets();
-
-    Serial.print("targetMotor1: ");
-    Serial.println(targetMotor1);
-    Serial.print("targetMotor2: ");
-    Serial.println(targetMotor2);
     
     moving_completed = false;
 }
@@ -125,8 +115,8 @@ void MotionController::update() { // This controls the motors
 
     syncIntegral += syncError;
     // Anti-windup: keep the integral term from growing unbounded
-    if (syncIntegral > 1.4f) syncIntegral = 1.4f;
-    if (syncIntegral < -1.4f) syncIntegral = -1.4f;
+    if (syncIntegral > 1.5f) syncIntegral = 1.5f;
+    if (syncIntegral < -1.5f) syncIntegral = -1.5f;
 
     float syncCorrection = Ksync * syncError + KsyncI * syncIntegral;
 
@@ -136,21 +126,15 @@ void MotionController::update() { // This controls the motors
     if (ceiling1 < 0.0f) ceiling1 = 0.0f;
     if (ceiling2 < 0.0f) ceiling2 = 0.0f;
 
-    bool shouldPrint = debugTick();
-
-    if (shouldPrint) {
-        Serial.print("dPath: ");
-        Serial.print(dPath);
-        Serial.print(" | vPath: ");
-        Serial.print(vPath);
-        Serial.print(" | progress1: ");
-        Serial.print(progress1);
-        Serial.print(" | progress2: ");
-        Serial.print(progress2);
-        Serial.print(" | ceiling1: ");
-        Serial.print(ceiling1);
-        Serial.print(" | ceiling2: ");
-        Serial.println(ceiling2);
+    // Re-clamp jointly so the sync correction can't push one motor over
+    // MAX_SPEED while leaving the other alone — that broke the ratio
+    // between them exactly in the cruise phase (mid-move), causing the
+    // visible gradient/direction change on long diagonal moves.
+    float worstPostSync = max(ceiling1, ceiling2);
+    if (worstPostSync > MAX_SPEED) {
+        float postSyncScale = MAX_SPEED / worstPostSync;
+        ceiling1 *= postSyncScale;
+        ceiling2 *= postSyncScale;
     }
 
     // MOTOR 1 CONTROL //
@@ -162,6 +146,8 @@ void MotionController::update() { // This controls the motors
         // Reset integral terms
         integralMotor1 = 0;
         prevIntegralMotor1 = 0;
+        dutyAccumulator1 = 0.0f;
+        pulseActive1 = false;
     } else {
         // Integral terms for PID control
         integralMotor1 = prevIntegralMotor1 + Ki * motor1Error;
@@ -176,9 +162,34 @@ void MotionController::update() { // This controls the motors
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
 
-        // Floor/ceiling enforced on the FINAL commanded value
-        if (speedMotor1 < MIN_SPEED) speedMotor1 = MIN_SPEED;
         if (speedMotor1 > MAX_SPEED) speedMotor1 = MAX_SPEED;
+
+        if (speedMotor1 < MIN_SPEED) {
+            // Sub-deadband crawl: continuous PWM this low won't reliably turn
+            // the motor. Instead, fire full MIN_SPEED pulses and HOLD each
+            // pulse on for at least minPulseMs of real time (not just one
+            // update() tick) so the motor actually has time to overcome
+            // static friction and move, rather than twitching and stalling.
+            if (pulseActive1) {
+                speedMotor1 = MIN_SPEED;
+                if (millis() - pulseStartMillis1 >= minPulseMs) {
+                    pulseActive1 = false;
+                }
+            } else {
+                dutyAccumulator1 += speedMotor1 / MIN_SPEED;
+                if (dutyAccumulator1 >= 1.0f) {
+                    dutyAccumulator1 -= 1.0f;
+                    pulseActive1 = true;
+                    pulseStartMillis1 = millis();
+                    speedMotor1 = MIN_SPEED;
+                } else {
+                    speedMotor1 = 0.0f;
+                }
+            }
+        } else {
+            dutyAccumulator1 = 0.0f; // not in crawl mode — don't carry stale credit
+            pulseActive1 = false;
+        }
 
         // MOTOR 1 CONTROL //
         digitalWrite(motor1_pin, motor1Error > 0 ? HIGH : LOW);
@@ -194,6 +205,8 @@ void MotionController::update() { // This controls the motors
         // Reset integral terms
         integralMotor2 = 0;
         prevIntegralMotor2 = 0;
+        dutyAccumulator2 = 0.0f;
+        pulseActive2 = false;
     } else {
         // Integral terms for PID control
         integralMotor2 = prevIntegralMotor2 + Ki * motor2Error;
@@ -209,9 +222,30 @@ void MotionController::update() { // This controls the motors
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
 
-        // Floor/ceiling enforced on the FINAL commanded value
-        if (speedMotor2 < MIN_SPEED) speedMotor2 = MIN_SPEED;
         if (speedMotor2 > MAX_SPEED) speedMotor2 = MAX_SPEED;
+
+        if (speedMotor2 < MIN_SPEED) {
+            // Sub-deadband crawl — see motor1 comment above.
+            if (pulseActive2) {
+                speedMotor2 = MIN_SPEED;
+                if (millis() - pulseStartMillis2 >= minPulseMs) {
+                    pulseActive2 = false;
+                }
+            } else {
+                dutyAccumulator2 += speedMotor2 / MIN_SPEED;
+                if (dutyAccumulator2 >= 1.0f) {
+                    dutyAccumulator2 -= 1.0f;
+                    pulseActive2 = true;
+                    pulseStartMillis2 = millis();
+                    speedMotor2 = MIN_SPEED;
+                } else {
+                    speedMotor2 = 0.0f;
+                }
+            }
+        } else {
+            dutyAccumulator2 = 0.0f;
+            pulseActive2 = false;
+        }
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
@@ -221,23 +255,17 @@ void MotionController::update() { // This controls the motors
     if (abs(motor1Error) <= positionTolerance && abs(motor2Error) <= positionTolerance) {
         updateAbsolutePosition();
 
-        Serial.println("=== Movement Complete ===");
-        Serial.print("Absolute X: ");
-        Serial.println(absoluteX);
-        Serial.print("Absolute Y: ");
-        Serial.println(absoluteY);
+        if(!homingRunning) {
+            Serial.println("=== Movement Complete ===");
+            Serial.print("Absolute X: ");
+            Serial.println(absoluteX);
+            Serial.print("Absolute Y: ");
+            Serial.println(absoluteY);
+
+        }
 
         moving_completed = true;
         
-    }
-
-    if (shouldPrint) {
-        Serial.print("M1 error: ");
-        Serial.print(motor1Error);
-        Serial.print(" | M2 error: ");
-        Serial.print(motor2Error);
-        Serial.print(" | Complete: ");
-        Serial.println(moving_completed);
     }
 }
 
@@ -250,23 +278,10 @@ void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-    Serial.println("=== calculateMotorTargets() ===");
-
-    Serial.print("motor1Counts: ");
-    Serial.println(motor1Counts);
-
-    Serial.print("motor2Counts: ");
-    Serial.println(motor2Counts);
 
     // Snapshot starting position for this move (velocity profile reference point)
     startMotor1 = encoder.getMotor1Count();
     startMotor2 = encoder.getMotor2Count();
-
-    Serial.print("Current M1: ");
-    Serial.println(startMotor1);
-
-    Serial.print("Current M2: ");
-    Serial.println(startMotor2);
 
     // Convert target positions to encoder counts
     targetMotor1 = startMotor1 + motor1Counts;
@@ -277,10 +292,11 @@ void MotionController::calculateMotorTargets() {
     dist2Total = abs((float)motor2Counts);
     pathLengthCounts = encoder.convertToCounts(sqrt(targetX * targetX + targetY * targetY));
 
-    Serial.print("Path length (counts): ");
-    Serial.println(pathLengthCounts);
-
     syncIntegral = 0.0f;
+    dutyAccumulator1 = 0.0f;
+    dutyAccumulator2 = 0.0f;
+    pulseActive1 = false;
+    pulseActive2 = false;
 
 }
 
@@ -288,11 +304,6 @@ void MotionController::updateAbsolutePosition() {
     absoluteX += targetX;
     absoluteY += targetY;
 
-    Serial.println("=== Absolute Position Updated ===");
-    Serial.print("Absolute X: ");
-    Serial.println(absoluteX);
-    Serial.print("Absolute Y: ");
-    Serial.println(absoluteY);
 }
 
 float MotionController::calculateVelocityCeiling(float distanceTraveled) const {
@@ -342,14 +353,9 @@ void MotionController::HomingIdle(){
 }
 
 void MotionController::HomingFunction() {
-    if (debugTick()) {
-        Serial.print("Homing state: ");
-        Serial.print(homingState);
-        Serial.print(" | last_pressed: ");
-        Serial.println(last_pressed);
-    }
 
     // Homing state machine
+    homingRunning = true;
     switch (homingState) {
         case MOVE_TO_LEFT:
             if (last_pressed == sB) {
@@ -461,7 +467,6 @@ void MotionController::HomingFunction() {
                 digitalWrite(motor2_pin, LOW);
                 analogWrite(enable1_pin, 98);
                 analogWrite(enable2_pin, 75);
-                Serial.print("MOVE TO BOTTOM 2");
             }
             break;
 
@@ -489,6 +494,7 @@ void MotionController::HomingFunction() {
                 absoluteY = 0.0f;
                 encoder.resetCounts();
                 homingComplete = true;
+                homingRunning = false;
             }
             break;
     }
