@@ -1,69 +1,43 @@
-// #include "encoder.h"
-// #include <Arduino.h> // not too sure if we need it
+#include "encoder.h"
+#include <Arduino.h> 
 
-// volatile int currentCount = 0;
+#define MM_PER_COUNT (15.0f * PI / 8256.0f) // 1 count = 5.71 um
 
-// encoder::encoder()
-// {
-//     currentPos = 0;
-//     destinationPos = 0;
-//     currentCount = 0;
-// }
+Encoder::Encoder() {
+    motor1Count = 0;
+    motor2Count = 0;
+}
 
-// int encoder::convertToCounts(int mm)
-// {
-//     return mm * 9.513;
-// }
+long Encoder::convertToCounts(float distanceInMM) {
+    float counts = distanceInMM / MM_PER_COUNT;
+    return (long)round(counts);
+}
 
-// int encoder::counterUp(int currentCount)
-// {
-//     currentCount++;
-//     return currentCount;
-// }
+long Encoder::getMotor1Count() {
+    return motor1Count;
+}
 
-// //ARDUNIO CODE
+long Encoder::getMotor2Count() {
+    return motor2Count;
+}
 
-// encoder encoderObject;
+void Encoder::incrementMotor1Count() {
+    motor1Count++;
+}
 
-// void encoder1A();
+void Encoder::incrementMotor2Count() {
+    motor2Count++;
+}
 
-// // Set up encoder pins
-// #define ENCODER1_A 18
-// #define ENCODER1_B 19
-// #define ENCODER2_A 20
-// #define ENCODER2_B 21
+void Encoder::decrementMotor1Count() {
+    motor1Count--;
+}
 
-// void setup()
-// {
-//   pinMode(ENCODER1_A, INPUT_PULLUP);
-//   pinMode(ENCODER1_B, INPUT_PULLUP);
-//   pinMode(ENCODER2_A, INPUT_PULLUP);
-//   pinMode(ENCODER2_B, INPUT_PULLUP);
-// }
-// // instants of objects ( do we need them or can we just do static functions??)
+void Encoder::decrementMotor2Count() {
+    motor2Count--;
+}
 
-
-// void loop()
-// {
-
-//     //every time quadrator encoder is triggered ISR will be called and currentCount will be incremented
-//     attachInterrupt(digitalPinToInterrupt(ENCODER1_A), encoder1A, CHANGE);
-
-// }
-
-// void encoder1A()
-// {
-//     // check direction of encoder
-//     if (digitalRead(ENCODER1_A) == digitalRead(ENCODER1_B))
-//     {
-//         // moving forward
-//         currentCount++;
-//     }
-//     else
-//     {
-//         // moving backward
-//         currentCount--;
-//     }
-// }
-
-// // interrupts
+void Encoder::resetCounts() {
+    motor1Count = 0;
+    motor2Count = 0;
+}

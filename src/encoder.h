@@ -1,24 +1,24 @@
-// #ifndef ENCODER_H
-// #define ENCODER_H
+#ifndef ENCODER_H
+#define ENCODER_H
 
-// #include <Arduino.h>
-// #include <string.h>
+#include <Arduino.h>
+#include <math.h>
 
-// // 1 count = 9.513mm
+class Encoder {
 
-// class encoder {
+    private:
+        volatile long motor1Count;
+        volatile long motor2Count;
+    public:
+        Encoder();
+        long convertToCounts(float distanceInMM);
+        long getMotor1Count();
+        long getMotor2Count();
+        void incrementMotor1Count();
+        void incrementMotor2Count();
+        void decrementMotor1Count();
+        void decrementMotor2Count();
+        void resetCounts();
+};
 
-//     public:
-//     encoder();
-
-
-//     private:
-//     int currentPos;
-//     int destinationPos;
-//     int currentCount = 0;
-//     int convertToCounts(int mm);
-//     int counterUp(int currentCount);
-
-// };
-
-// #endif
+#endif
