@@ -7,37 +7,43 @@
 
 class MotionController {
     public:
-        enum SwitchState {sT, sB, sL, sR, START};
+        // Limit switch states
+        enum SwitchState {
+            sT,    // Top limit switch pressed
+            sB,    // Bottom limit switch pressed
+            sL,    // Left limit switch pressed
+            sR,    // Right limit switch pressed
+            START  // Initial or no switch pressed state
+        };
     private:
-        Encoder& encoder;
+        Encoder& encoder; // Reference to encoder for position tracking
 
-        float targetX;
-        float targetY;
-        float speed;
+        float targetX; // Target X displacement (mm)
+        float targetY; // Target Y displacement (mm)
+        float speed;  // Commanded speed (PWM value)
 
         // Target Motor Encoder Counts
-        long targetMotor1; 
-        long targetMotor2;
+        long targetMotor1; // Target encoder count for motor 1
+        long targetMotor2; // Target encoder count for motor 2
 
-        // Reference to absolute position variables
-        float& absoluteX;
-        float& absoluteY;
-        volatile SwitchState& last_pressed;
-
-        // Velocity profile: snapshot of encoder counts at the start of the current move
+        float& absoluteX; // Reference to absolute X position
+        float& absoluteY; // Reference to absolute Y position
+        volatile SwitchState& last_pressed;  // Reference to last pressed limit switch
+  
+        // Velocity Profile 
         long startMotor1;
         long startMotor2;
 
-        // Velocity profile: total distance (in counts) each motor must travel this move
+        // Total distance (in counts) each motor must travel for current move
         float dist1Total;
         float dist2Total;
 
-        // Velocity profile: true Cartesian path length for this move, in counts
+        // True cartesian path length for current move, in encoder counts
         float pathLengthCounts;
 
-        bool moving_completed;
+        bool moving_completed;    // Flag indicating if movement is complete
 
-        // Homing state machine and variables
+        // Homing 
         enum HomingState {
             MOVE_TO_LEFT,
             BOTTOM_EDGE_CASE_WAIT,
@@ -54,48 +60,74 @@ class MotionController {
             MOVE_UP2,
             WAIT_AFTER_UP2
         };
-        HomingState homingState = MOVE_TO_LEFT;
-        volatile bool homingComplete = false;
-        volatile bool homingRunning = false;
+        HomingState homingState = MOVE_TO_LEFT;  // Current homing state
+        volatile bool homingComplete = false;   // Homing finished
+        volatile bool homingRunning = false;    // Homing in progress
 
-        // PI control variables
-        // Track previous integrals
+        // PI Control 
+        // Previous integral terms (for anti-windup clamping)
         float prevIntegralMotor1;
         float prevIntegralMotor2;
 
-        // Integral terms for PID control
+        // Current integral terms for PI control
         float integralMotor1;
         float integralMotor2;
 
-        float dutyAccumulator1 = 0.0f;
-        float dutyAccumulator2 = 0.0f;
-        bool pulseActive1 = false;
-        bool pulseActive2 = false;
-        unsigned long pulseStartMillis1 = 0;
-        unsigned long pulseStartMillis2 = 0;
+        // Low-Speed Pulse Mode for low-speed pulse generation when ratio between M1 and M2 
+        // isn't reachable due to required M2 being lower than minimum speed
+        float dutyAccumulator1;
+        float dutyAccumulator2;
+        
+        // Flag: pulse currently active (motor running at min speed)
+        bool pulseActive1;
+        bool pulseActive2;
+        
+        // Timestamp when current pulse started
+        unsigned long pulseStartMillis1;
+        unsigned long pulseStartMillis2;
 
-        static const unsigned long DEBUG_PRINT_INTERVAL_MS = 200; // throttle debug output to 5 Hz
+        // Debug ticks to prevent overload due to debug prints
+        static const unsigned long DEBUG_PRINT_INTERVAL_MS = 200;
         unsigned long lastDebugPrint = 0;
-        bool debugTick(); // returns true (and resets the timer) once per interval
+        bool debugTick();
         
     public:
-
+        // Initialise motion controller with encoder and position references
         MotionController(Encoder& encoder, float& absoluteX, float& absoluteY, volatile SwitchState& last_pressed);
+        
+        // Set movement target and speed (x, y in mm, speed as PWM value)
         void setTarget(float x, float y, float speed);
+        
+        // Execute one control loop iteration
         void update();
+        
+        // Check if current movement is complete
         bool isCompleted() const;
+        
+        // Calculate target motor encoder counts from XY target position
         void calculateMotorTargets();
+        
+        // Update absolute position with completed movement
         void updateAbsolutePosition();
+        
+        // Calculate maximum allowed speed at given distance (velocity profile)
+        // Returns maximum allowed speed based on acceleration/deceleration curve
         float calculateVelocityCeiling(float distanceTraveled) const;
 
-        // State motion controls
+        // Stop motors immediately
         void Idle();
-        // Homing state functions
+        
+        // Stop motors during homing 
         void HomingIdle();
+        
+        // Executes homing
         void HomingFunction();
+        
+        // Check if homing is complete
         bool isHomingComplete() const;
+        
+        // Initialise homing 
         void StartHoming();
-        void HomingFlagSetter();
 
 };
 
