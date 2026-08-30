@@ -16,7 +16,7 @@ int homing_M1_Speed = 250;
 
 // Maximum and minimum speed limits for motors
 int MIN_SPEED = 85; // tuned
-int MAX_SPEED = 200; // tuned
+int MAX_SPEED = 150; // tuned
 
 
 // Feedforward + PI Variables
@@ -24,17 +24,18 @@ int MAX_SPEED = 200; // tuned
 // encoder speed), not position error. Units are mixed (desired speed is in
 // the existing "PWM-ish" profile units, measured speed is counts/sec), so
 // these are placeholders to be re-tuned on the bench from scratch.
-float Kff = 0.6f; // tune - feedforward: maps desired profile speed directly to PWM output
-float Kp = 0.1f; // tune - feedback: corrects residual speed error the feedforward misses
-float Ki = 0.0f; // tune
+float Kff = 1.0f; // tune - feedforward: maps desired profile speed directly to PWM output
+float Kp = 0.45f; // tune - feedback: corrects residual speed error the feedforward misses
+float Ki = 0.02f; // tune
 int positionTolerance = 100; //adjust based on testing
+float velocityTolerance = 5.0f; // counts/sec — tune this
 
 // Converts measured encoder speed (counts/sec) into the same "profile speed"
 // units that desiredSpeed / ceiling / Kff already operate in. Calibrated
 // separately per motor — motor2 has been consistently reading faster than
 // motor1 for the same commanded speed (see bench data, ~10.3 vs ~12.2).
-float motor1CountsPerSecPerSpeedUnit = 10.3f; // from single-axis bench test
-float motor2CountsPerSecPerSpeedUnit = 12.2f; // from single-axis bench test
+float motor1CountsPerSecPerSpeedUnit = 10.3f; // recalibrated — was underestimating at cruise speed
+float motor2CountsPerSecPerSpeedUnit = 12.2f; // recalibrated — was underestimating at cruise speed
 
 // Fallback dt (seconds) used only if millis() ever returns a non-positive
 // delta (e.g. the very first tick, or a rollover edge case). Matches
@@ -78,24 +79,8 @@ void MotionController::setTarget(float x, float y, float speed) {
     targetY = y;
     this->speed = speed;
 
-
-    Serial.println("=== setTarget() ===");
-    Serial.print("targetX: ");
-    Serial.println(targetX);
-    Serial.print("targetY: ");
-    Serial.println(targetY);
-    Serial.print("speed: ");
-    Serial.println(this->speed);
-
-
     calculateMotorTargets();
 
-
-    Serial.print("targetMotor1: ");
-    Serial.println(targetMotor1);
-    Serial.print("targetMotor2: ");
-    Serial.println(targetMotor2);
-   
     moving_completed = false;
 }
 
@@ -143,39 +128,21 @@ void MotionController::update() { // This controls the motors
 
     float vPath = calculateVelocityCeiling(dPath);
 
+    // Clamp the shared vPath itself (not each motor's derived ceiling) so
+    // the ratio between motor1 and motor2 is preserved exactly as the move
+    // requires — see vPathFloor/vPathCeiling in calculateMotorTargets().
+    if (vPath < vPathFloor) vPath = vPathFloor;
+    if (vPath > vPathCeiling) vPath = vPathCeiling;
 
     float ceiling1 = speed;
     float ceiling2 = speed;
     if (pathLengthCounts > 0.0f) {
         ceiling1 = vPath * (dist1Total / pathLengthCounts);
         ceiling2 = vPath * (dist2Total / pathLengthCounts);
-        if (ceiling1 > MAX_SPEED) ceiling1 = MAX_SPEED;
-        if (ceiling2 > MAX_SPEED) ceiling2 = MAX_SPEED;
     }
 
 
     bool shouldPrint = debugTick();
-
-
-    if (shouldPrint) {
-        Serial.print("dPath: ");
-        Serial.print(dPath);
-        Serial.print(" | vPath: ");
-        Serial.print(vPath);
-        Serial.print(" | ceiling1: ");
-        Serial.print(ceiling1);
-        Serial.print(" | ceiling2: ");
-        Serial.println(ceiling2);
-
-
-        Serial.print("actualSpeed1: ");
-        Serial.print(actualSpeed1);
-        Serial.print(" | actualSpeed2: ");
-        Serial.print(actualSpeed2);
-        Serial.print(" | dt: ");
-        Serial.println(dt, 4);
-    }
-
 
     // MOTOR 1 CONTROL //
     if (abs(motor1Error) <= positionTolerance)  {
@@ -207,15 +174,6 @@ void MotionController::update() { // This controls the motors
         // Motor output: feedforward + PI correction
         float speedMotor1 = abs(feedforwardMotor1 + Kp * speedError1 + integralMotor1); // must be positive for analogWrite
 
-        if (shouldPrint) {
-            Serial.print("FF1: ");
-            Serial.print(feedforwardMotor1);
-            Serial.print(" | actualSpeed1Scaled: ");
-            Serial.print(actualSpeed1Scaled);
-            Serial.print(" | speedError1: ");
-            Serial.println(speedError1);
-        }
-
         // Integral clamping to prevent windup
         if (speedMotor1 > ceiling1) {
             speedMotor1 = ceiling1;
@@ -223,6 +181,11 @@ void MotionController::update() { // This controls the motors
         } else {
             prevIntegralMotor1 = integralMotor1; // Only update previous integral if not saturated
         }
+
+        // Physical floor: the motor cannot move below MIN_SPEED PWM regardless of
+        // what Kp/Ki compute. This is separate from vPathFloor (which only bounds
+        // the setpoint) — Kp's correction can still pull the final commanded value
+        // under the stall threshold even when ceiling1 itself is fine.
         if (speedMotor1 < MIN_SPEED) {
             speedMotor1 = MIN_SPEED;
         }
@@ -263,15 +226,6 @@ void MotionController::update() { // This controls the motors
         // Motor output: feedforward + PI correction
         float speedMotor2 = abs(feedforwardMotor2 + Kp * speedError2 + integralMotor2); // must be positive for analogWrite
 
-        if (shouldPrint) {
-            Serial.print("FF2: ");
-            Serial.print(feedforwardMotor2);
-            Serial.print(" | actualSpeed2Scaled: ");
-            Serial.print(actualSpeed2Scaled);
-            Serial.print(" | speedError2: ");
-            Serial.println(speedError2);
-        }
-
         // Integral clamping to prevent windup
         if (speedMotor2 > ceiling2) {
             speedMotor2 = ceiling2;
@@ -279,9 +233,17 @@ void MotionController::update() { // This controls the motors
         } else {
             prevIntegralMotor2 = integralMotor2; // Only update previous integral if not saturated
         }
+
+        if (speedMotor2 > ceiling2) {
+            speedMotor2 = ceiling2;
+            integralMotor2 = prevIntegralMotor2;
+        } else {
+            prevIntegralMotor2 = integralMotor2;
+        }
+
         if (speedMotor2 < MIN_SPEED) {
             speedMotor2 = MIN_SPEED;
-        }
+        }        
 
         // MOTOR 2 CONTROL //
         digitalWrite(motor2_pin, motor2Error > 0 ? HIGH : LOW);
@@ -304,15 +266,6 @@ void MotionController::update() { // This controls the motors
        
     }
 
-
-    if (shouldPrint) {
-        Serial.print("M1 error: ");
-        Serial.print(motor1Error);
-        Serial.print(" | M2 error: ");
-        Serial.print(motor2Error);
-        Serial.print(" | Complete: ");
-        Serial.println(moving_completed);
-    }
 }
 
 
@@ -329,30 +282,9 @@ void MotionController::calculateMotorTargets() {
     long motor1Counts = encoder.convertToCounts(targetX - targetY);
     long motor2Counts = encoder.convertToCounts(targetX + targetY);
 
-
-    Serial.println("=== calculateMotorTargets() ===");
-
-
-    Serial.print("motor1Counts: ");
-    Serial.println(motor1Counts);
-
-
-    Serial.print("motor2Counts: ");
-    Serial.println(motor2Counts);
-
-
     // Snapshot starting position for this move (velocity profile reference point)
     startMotor1 = encoder.getMotor1Count();
     startMotor2 = encoder.getMotor2Count();
-
-
-    Serial.print("Current M1: ");
-    Serial.println(startMotor1);
-
-
-    Serial.print("Current M2: ");
-    Serial.println(startMotor2);
-
 
     // Convert target positions to encoder counts
     targetMotor1 = startMotor1 + motor1Counts;
@@ -371,24 +303,36 @@ void MotionController::calculateMotorTargets() {
     dist2Total = abs((float)motor2Counts);
     pathLengthCounts = encoder.convertToCounts(sqrt(targetX * targetX + targetY * targetY));
 
+    // Precompute vPath bounds so that, once split by each motor's distance
+    // ratio, BOTH motors land inside [MIN_SPEED, MAX_SPEED] simultaneously —
+    // clamping ceiling1/ceiling2 or speedMotor1/speedMotor2 independently
+    // (the old approach) breaks the ratio between them on asymmetric moves.
+    if (pathLengthCounts > 0.0f) {
+        float ratio1 = dist1Total / pathLengthCounts;
+        float ratio2 = dist2Total / pathLengthCounts;
+        float maxRatio = max(ratio1, ratio2);
+        float minRatio = min(ratio1, ratio2);
 
-    Serial.print("Path length (counts): ");
-    Serial.println(pathLengthCounts);
+        vPathCeiling = (maxRatio > 0.0f) ? (MAX_SPEED / maxRatio) : speed;
+        vPathFloor = (minRatio > 0.0f) ? (MIN_SPEED / minRatio) : (float)MIN_SPEED;
 
-
+        if (vPathFloor > vPathCeiling) {
+            // Infeasible combination (e.g. a very short move on one axis
+            // paired with a long one on the other) — favor not exceeding
+            // MAX_SPEED and flag it rather than silently breaking the ratio.
+            Serial.println("WARNING: vPath bounds infeasible, favoring MAX_SPEED");
+            vPathFloor = vPathCeiling;
+        }
+    } else {
+        vPathFloor = MIN_SPEED;
+        vPathCeiling = speed;
+    }
 }
 
 
 void MotionController::updateAbsolutePosition() {
     absoluteX += targetX;
     absoluteY += targetY;
-
-
-    Serial.println("=== Absolute Position Updated ===");
-    Serial.print("Absolute X: ");
-    Serial.println(absoluteX);
-    Serial.print("Absolute Y: ");
-    Serial.println(absoluteY);
 }
 
 
@@ -440,12 +384,6 @@ void MotionController::HomingIdle(){
 
 
 void MotionController::HomingFunction() {
-    if (debugTick()) {
-        Serial.print("Homing state: ");
-        Serial.print(homingState);
-        Serial.print(" | last_pressed: ");
-        Serial.println(last_pressed);
-    }
 
     // Homing state machine
     switch (homingState) {

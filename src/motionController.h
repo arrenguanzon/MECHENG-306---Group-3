@@ -43,6 +43,13 @@ class MotionController {
         // Velocity profile: true Cartesian path length for this move, in counts
         float pathLengthCounts;
 
+        // Velocity profile: bounds on vPath (the shared path-speed setpoint)
+        // that keep BOTH motors simultaneously within [MIN_SPEED, MAX_SPEED]
+        // once vPath gets split by each motor's distance ratio. Computed once
+        // per move in calculateMotorTargets(), applied every tick in update().
+        float vPathFloor;
+        float vPathCeiling;
+
 
         // Speed-loop feedback: encoder counts and timestamp from the previous
         // update() tick, used to measure actual motor speed (counts/sec) and
@@ -88,7 +95,7 @@ class MotionController {
         float integralMotor2;
 
 
-        static const unsigned long DEBUG_PRINT_INTERVAL_MS = 200; // throttle debug output to 5 Hz
+        static const unsigned long DEBUG_PRINT_INTERVAL_MS = 500; // throttle debug output to 5 Hz
         unsigned long lastDebugPrint = 0;
         bool debugTick(); // returns true (and resets the timer) once per interval
        

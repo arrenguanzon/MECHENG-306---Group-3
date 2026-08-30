@@ -35,6 +35,18 @@ void GCode::tokeniseInput(const String &rc) {
    
     rc_filtered.trim();
 
+    //get rid of all the spaces then parse
+    String temp = "";
+    temp.reserve(rc_filtered.length()); // Allocate memory 
+    
+    for (unsigned int i = 0; i < rc_filtered.length(); i++) {
+        char c = rc_filtered.charAt(i);
+        if (c != ' ') {
+            temp += c;
+        }
+    }
+    rc_filtered = temp;
+
     for (unsigned int i = 0; i <= rc_filtered.length(); i++) {
         if (i == rc_filtered.length() ||
             rc_filtered.charAt(i) == ' ' ||
@@ -199,6 +211,11 @@ bool GCode::parseValue(const String &token) {
     if (negative) {
         value = -value;
     }
+
+    if(decimalFound){ 
+        value = round(value);
+    }
+
 
     // Store the value
     if (type == 'X') {

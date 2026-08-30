@@ -64,7 +64,7 @@ void setup()
     pinMode(motor1_pin, OUTPUT);
     pinMode(motor2_pin, OUTPUT);
 
-    Serial.begin(9600);
+    Serial.begin(115200);
     // Set up limit switch pins
     pinMode(switch_top, INPUT_PULLUP);
     pinMode(switch_bottom, INPUT_PULLUP);
@@ -93,6 +93,10 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(ENCODER2_A), ENCODER2AISR, CHANGE);
     attachInterrupt(digitalPinToInterrupt(ENCODER2_B), ENCODER2BISR, CHANGE);
 
+    Serial.println("=== Welcome to our XY-Plotter! ===");
+    Serial.println("Please enter Homing command (G28) before moving the plotter with G1 command.");
+    Serial.println("Gantry Limit: X:205mm, Y:135mm");
+    
 }
 
 void loop(){
@@ -113,6 +117,15 @@ void loop(){
                 Serial.println(fsm.getStateName());
 
                 user_input = "";
+            }
+        } // Handle Backspace (ASCII 8) and Delete (ASCII 127)
+        else if (c == '\b' || c == (char)127) {
+            if (user_input.length() > 0) {
+                // Remove the last character from the buffer string
+                user_input.remove(user_input.length() - 1);
+                
+                // Erase the character visually from the serial terminal
+                Serial.print("\b \b");
             }
         }
         else {
